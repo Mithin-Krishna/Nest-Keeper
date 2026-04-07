@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "headers/house.h"    
 #include "headers/resident.h" 
+#include "headers/payment.h"
 
 int main() {
     setupBlocks(); 
@@ -26,8 +27,11 @@ int main() {
         printf("4. Search for a Resident by Flat Number\n");
         printf("5. Delete a Resident (Move-out)\n");
         printf("6. View Full Resident Directory\n");
-        printf("7. Exit System\n");
-        printf("Enter your choice (1-7): ");
+        printf("7. Add Flat to Payment Queue (Owes Money)\n");
+        printf("8. Process Next Payment (Clear from Queue)\n");
+        printf("9. View Pending Payment Queue\n");
+        printf("10. Exit System\n");
+        printf("Enter your choice (1-10): ");
         
         scanf("%d", &choice);
 
@@ -87,8 +91,6 @@ int main() {
                 scanf(" %c", &block);
                 printf("Enter Flat Number to Delete: ");
                 scanf("%s", flatNo);
-                
-                // Catch the rope returned by the delete function!
                 root = deleteResident(root, block, flatNo);
                 printf("If resident existed, they have been removed from the system.\n");
                 break;
@@ -103,7 +105,28 @@ int main() {
                 printf("====================================================\n");
                 break;
 
-            case 7:
+                case 7:
+                float amount;
+                printf("\nEnter Block (A-E): ");
+                scanf(" %c", &block);
+                printf("Enter Flat Number: ");
+                scanf("%s", flatNo);
+                printf("Enter Amount Owed: ");
+                scanf("%f", &amount);
+                
+                enqueue(block, flatNo, amount);
+                break;
+
+            case 8:
+                printf("\nProcessing next payment in queue...\n");
+                dequeue();
+                break;
+
+            case 9:
+                displayPaymentQueue();
+                break;
+                
+            case 10:
                 printf("\nShutting down system. Cleaning up memory...\n");
                 freeTree(root); // Perfect memory management
                 printf("Goodbye!\n");
@@ -113,6 +136,5 @@ int main() {
                 printf("Invalid choice! Please select a number between 1 and 7.\n");
         }
     }
-
     return 0;
 }
