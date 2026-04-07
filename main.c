@@ -125,10 +125,10 @@ int main() {
             case 9:
                 displayPaymentQueue();
                 break;
-                
+
             case 10:
                 printf("\nShutting down system. Cleaning up memory...\n");
-                freeTree(root); // Perfect memory management
+                freeTree(root); 
                 printf("Goodbye!\n");
                 exit(0);
 
