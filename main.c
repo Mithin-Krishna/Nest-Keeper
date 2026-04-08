@@ -3,11 +3,12 @@
 #include "headers/house.h"    
 #include "headers/resident.h" 
 #include "headers/payment.h"
+#include "headers/file_io.h"
 
 int main() {
     setupBlocks(); 
-    struct ResidentNode* root = NULL; // Prepare the empty Resident tree
-
+    struct ResidentNode* root = NULL; 
+    root = loadAllData(root);
     int choice;
     char block;
     char flatNo[10];
@@ -38,15 +39,20 @@ int main() {
         switch (choice) {
             case 1:
                 printf("\nEnter Block (A-E): ");
-                scanf(" %c", &block); 
+                scanf(" %c", &block);
                 printf("Enter Flat Number (e.g., 101): ");
                 scanf("%s", flatNo);
-                printf("Enter BHK (1, 2, or 3): ");
-                scanf("%d", &bhk);
                 
-                addFlat(flatNo, block, bhk);
+                // NEW: Stop duplicate flats!
+                if (doesFlatExist(block, flatNo) == 1) {
+                    printf("ERROR: Flat %s already exists in Block %c!\n", flatNo, block);
+                } else {
+                    printf("Enter BHK (1, 2, or 3): ");
+                    scanf("%d", &bhk);
+                    addFlat(flatNo, block, bhk);
+                    printf("Successfully added Flat %s to Block %c!\n", flatNo, block);
+                }
                 break;
-
             case 2:
                 printf("\nEnter Block to Search (A-E): ");
                 scanf(" %c", &block);
@@ -61,13 +67,22 @@ int main() {
                 scanf(" %c", &block);
                 printf("Enter Flat Number: ");
                 scanf("%s", flatNo);
-                printf("Enter Resident Name: ");
-                scanf(" %[^\n]s", name); 
-                printf("Enter Phone Number: ");
-                scanf("%s", phone);
+                if (doesFlatExist(block, flatNo) == 1) 
+                {
+                    printf("Enter Resident Name: ");
+                    scanf(" %[^\n]s", name);
+                    printf("Enter Phone Number: ");
+                    scanf("%s", phone);
+                    
+                    root = insertResident(root, block, flatNo, name, phone);
+                    updateFlatStatus(block, flatNo, 1); // Mark flat as Occupied (1)
+                    printf("Successfully registered %s to Flat %s!\n", name, flatNo);
+                } 
+                else 
+                {
+                    printf("ERROR: Block %c, Flat %s does not exist! Please build the flat first.\n", block, flatNo);
+                }
                 
-                root = insertResident(root, block, flatNo, name, phone);
-                printf("Successfully registered %s to Flat %s!\n", name, flatNo);
                 break;
 
             case 4:
@@ -91,8 +106,10 @@ int main() {
                 scanf(" %c", &block);
                 printf("Enter Flat Number to Delete: ");
                 scanf("%s", flatNo);
+                
                 root = deleteResident(root, block, flatNo);
-                printf("If resident existed, they have been removed from the system.\n");
+                updateFlatStatus(block, flatNo, 0); // Mark flat as Empty (0) again
+                printf("If resident existed, they have been removed and the flat is now empty.\n");
                 break;
 
             case 6:
@@ -111,10 +128,15 @@ int main() {
                 scanf(" %c", &block);
                 printf("Enter Flat Number: ");
                 scanf("%s", flatNo);
-                printf("Enter Amount Owed: ");
-                scanf("%f", &amount);
                 
-                enqueue(block, flatNo, amount);
+                // BUG 1 FIX: Prevent ghost payments
+                if (doesFlatExist(block, flatNo) == 1) {
+                    printf("Enter Amount Owed: ");
+                    scanf("%f", &amount);
+                    enqueue(block, flatNo, amount);
+                } else {
+                    printf("ERROR: Cannot charge payment. Block %c, Flat %s does not exist!\n", block, flatNo);
+                }
                 break;
 
             case 8:
@@ -127,8 +149,9 @@ int main() {
                 break;
 
             case 10:
-                printf("\nShutting down system. Cleaning up memory...\n");
-                freeTree(root); 
+                printf("\nShutting down system...\n");
+                saveAllData(root);  // BUG 3 FIX: Triggers the File I/O save!
+                freeTree(root);     // Cleans up RAM
                 printf("Goodbye!\n");
                 exit(0);
 

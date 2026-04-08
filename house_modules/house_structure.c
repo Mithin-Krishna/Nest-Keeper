@@ -5,13 +5,15 @@
 
 struct Flat* communityBlocks[5]; 
 
-void setupBlocks() {
+void setupBlocks() 
+{
     for (int i = 0; i < 5; i++) {
         communityBlocks[i] = NULL;
     }
 }
 
-void addFlat(char flatNo[], char block, int bhk) {
+void addFlat(char flatNo[], char block, int bhk) 
+{
     struct Flat* newFlat = (struct Flat*)malloc(sizeof(struct Flat));
     strcpy(newFlat->flatNo, flatNo);
     newFlat->block = block;
@@ -34,4 +36,34 @@ void addFlat(char flatNo[], char block, int bhk) {
     communityBlocks[index] = newFlat;
     
     printf("Successfully added Flat %s to Block %c!\n", flatNo, block);
+}
+
+int doesFlatExist(char block, char flatNo[]) 
+{
+    int index = block - 'A';
+    if (index < 0 || index > 4) return 0; // Invalid block
+    
+    struct Flat* current = communityBlocks[index];
+    while (current != NULL) {
+        if (strcmp(current->flatNo, flatNo) == 0) {
+            return 1; // Found it!
+        }
+        current = current->next;
+    }
+    return 0; // Does not exist
+}
+
+void updateFlatStatus(char block, char flatNo[], int newStatus) 
+{
+    int index = block - 'A';
+    if (index < 0 || index > 4) return;
+    
+    struct Flat* current = communityBlocks[index];
+    while (current != NULL) {
+        if (strcmp(current->flatNo, flatNo) == 0) {
+            current->status = newStatus;
+            return;
+        }
+        current = current->next;
+    }
 }

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "../headers/house.h"
 
 void searchBHK(char targetBlock, int desiredBhk) {

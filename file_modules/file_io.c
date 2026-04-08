@@ -27,7 +27,7 @@ void saveResidentsToFile(struct ResidentNode* root, FILE* file)
 
 void saveAllData(struct ResidentNode* root) 
 {
-    FILE* file = fopen("database.txt", "w");
+    FILE* file = fopen("C:\\Users\\Mithin Krishna\\OneDrive\\Desktop\\c-workspace\\SDP\\database.txt", "w");
     if (file == NULL) 
     {
         printf("Error: Could not create database file!\n");
@@ -41,7 +41,7 @@ void saveAllData(struct ResidentNode* root)
 
 struct ResidentNode* loadAllData(struct ResidentNode* root) 
 {
-    FILE* file = fopen("database.txt", "r");
+    FILE* file = fopen("C:\\Users\\Mithin Krishna\\OneDrive\\Desktop\\c-workspace\\SDP\\database.txt", "r");
     if (file == NULL) 
     {
         printf("\n[SYSTEM] No existing database found. Starting a fresh system!\n");

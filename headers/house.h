@@ -15,4 +15,7 @@ void setupBlocks();
 void addFlat(char flatNo[], char block, int bhk);
 void searchBHK(char targetBlock, int desiredBhk);
 
+int doesFlatExist(char block, char flatNo[]);
+void updateFlatStatus(char block, char flatNo[], int newStatus);
+
 #endif
