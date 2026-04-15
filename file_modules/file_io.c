@@ -1,80 +1,59 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../headers/house.h"
-#include "../headers/resident.h"
-#include "../headers/file_io.h"
+#include "../headers/resident.h" 
 
-void saveFlatsToFile(FILE* file) 
+struct DiskRecord {
+    char block;
+    char flatNo[10];
+    char name[50];
+    char phone[15];
+};
+
+void saveNodePreOrder(struct ResidentNode* root, FILE* file) 
 {
-    for (int i = 0; i < 5; i++) 
+    if (root == NULL) 
     {
-        struct Flat* current = communityBlocks[i];
-        while (current != NULL) {
-            fprintf(file, "F,%c,%s,%d,%d\n", current->block, current->flatNo, current->bhk, current->status);
-            current = current->next;
-        }
+        return;
     }
-}
-
-void saveResidentsToFile(struct ResidentNode* root, FILE* file) 
-{
-    if (root == NULL) return;
-    fprintf(file, "R,%c,%s,%s,%s\n", root->block, root->flatNo, root->info.name, root->info.phone);
-    saveResidentsToFile(root->left, file);
-    saveResidentsToFile(root->right, file);
+    struct DiskRecord record;
+    record.block = root->block;
+    strcpy(record.flatNo, root->flatNo);
+    strcpy(record.name, root->info.name);
+    strcpy(record.phone, root->info.phone);
+    fwrite(&record, sizeof(struct DiskRecord), 1, file);
+    saveNodePreOrder(root->left, file);
+    saveNodePreOrder(root->right, file);
 }
 
 void saveAllData(struct ResidentNode* root) 
 {
-    FILE* file = fopen("C:\\Users\\Mithin Krishna\\OneDrive\\Desktop\\c-workspace\\SDP\\database.txt", "w");
+    FILE* file = fopen("database.dat", "wb");
     if (file == NULL) 
     {
-        printf("Error: Could not create database file!\n");
+        printf("[ERROR] Could not open database.dat for saving!\n");
         return;
     }
-    saveFlatsToFile(file);
-    saveResidentsToFile(root, file);
+    saveNodePreOrder(root, file);
     fclose(file);
-    printf("\n[SYSTEM] All data successfully saved to 'database.txt'!\n");
+    printf("[SYSTEM] Success: All data securely locked in 'database.dat'.\n");
 }
 
-struct ResidentNode* loadAllData(struct ResidentNode* root) 
+struct ResidentNode* loadAllData() 
 {
-    FILE* file = fopen("C:\\Users\\Mithin Krishna\\OneDrive\\Desktop\\c-workspace\\SDP\\database.txt", "r");
+    FILE* file = fopen("database.dat", "rb");
+    struct ResidentNode* root = NULL; // Start with an empty tree
     if (file == NULL) 
     {
-        printf("\n[SYSTEM] No existing database found. Starting a fresh system!\n");
-        return root; 
+        printf("[SYSTEM] No existing 'database.dat' found. Starting fresh database.\n");
+        return NULL;
     }
-
-    char line[200];
-    while (fgets(line, sizeof(line), file)) 
+    struct DiskRecord temp;
+    while (fread(&temp, sizeof(struct DiskRecord), 1, file) == 1) 
     {
-        if (line[0] == 'F') 
-        {
-            char type, block;
-            char flatNo[10];
-            int bhk, status;
-            sscanf(line, "%c,%c,%[^,],%d,%d", &type, &block, flatNo, &bhk, &status);
-            addFlat(flatNo, block, bhk);
-            int index = block - 'A';
-            if (communityBlocks[index] != NULL) 
-            {
-                communityBlocks[index]->status = status; 
-            }
-        } 
-        
-        else if (line[0] == 'R') 
-        {
-            char type, block;
-            char flatNo[10], name[50], phone[15];
-            sscanf(line, "%c,%c,%[^,],%[^,],%[^\n]", &type, &block, flatNo, name, phone);
-            root = insertResident(root, block, flatNo, name, phone);
-        }
+        root = insertResident(root, temp.block, temp.flatNo, temp.name, temp.phone); 
     }
-    
     fclose(file);
-    printf("\n[SYSTEM] Previous data successfully loaded from 'database.txt'!\n");
+    printf("[SYSTEM] Boot-up Sequence: Data securely loaded from 'database.dat'.\n");
     return root; 
 }

@@ -7,7 +7,8 @@ struct Flat* communityBlocks[5];
 
 void setupBlocks() 
 {
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 5; i++) 
+    {
         communityBlocks[i] = NULL;
     }
 }
@@ -26,7 +27,8 @@ void addFlat(char flatNo[], char block, int bhk)
     else if (block == 'C') index = 2;
     else if (block == 'D') index = 3;
     else if (block == 'E') index = 4;
-    else {
+    else 
+    {
         printf("Invalid Block!\n");
         free(newFlat); // Prevent memory leak on fail
         return;

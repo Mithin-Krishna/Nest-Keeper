@@ -3,27 +3,48 @@
 #include <string.h>
 #include "../headers/resident.h"
 
-// 1. INSERTION
-struct ResidentNode* insertResident(struct ResidentNode* root, char block, char flatNo[], char name[], char phone[]) {
-    if (root == NULL) {
+struct ResidentNode* createNode(char block, char flatNo[], char name[], char phone[]) 
+{
+    struct ResidentNode* newNode = (struct ResidentNode*)malloc(sizeof(struct ResidentNode));
+    
+    newNode->block = block;
+    strcpy(newNode->flatNo, flatNo);
+    strcpy(newNode->info.name, name);
+    strcpy(newNode->info.phone, phone);
+    
+    newNode->left = NULL;
+    newNode->right = NULL;
+    
+    return newNode;
+}
+
+struct ResidentNode* insertResident(struct ResidentNode* root, char block, char flatNo[], char name[], char phone[]) 
+{
+    if (root == NULL)
+    {
         return createNode(block, flatNo, name, phone);
     }
-
-    if (block < root->block) {
+    if (block < root->block) 
+    {
         root->left = insertResident(root->left, block, flatNo, name, phone);
     }
-    else if (block > root->block) {
+    else if (block > root->block) 
+    {
         root->right = insertResident(root->right, block, flatNo, name, phone);
     }
-    else {
+    else 
+    {
         int cmp = strcmp(flatNo, root->flatNo);
-        if (cmp < 0) {
+        if (cmp < 0) 
+        {
             root->left = insertResident(root->left, block, flatNo, name, phone);
         }
-        else if (cmp > 0) {
+        else if (cmp > 0) 
+        {
             root->right = insertResident(root->right, block, flatNo, name, phone);
         }
-        else {
+        else 
+        {
             printf("Notice: Adding roommate %s to Block %c, Flat %s\n", name, block, flatNo);
             root->right = insertResident(root->right, block, flatNo, name, phone);
         }
@@ -31,13 +52,14 @@ struct ResidentNode* insertResident(struct ResidentNode* root, char block, char 
     return root;
 }
 
-// 2. SEARCHING
-struct ResidentNode* searchResident(struct ResidentNode* root, char block, char flatNo[]) {
+struct ResidentNode* searchResident(struct ResidentNode* root, char block, char flatNo[]) 
+{
     if (root == NULL) return NULL; 
 
     if (block < root->block) return searchResident(root->left, block, flatNo);
     else if (block > root->block) return searchResident(root->right, block, flatNo);
-    else {
+    else
+    {
         int cmp = strcmp(flatNo, root->flatNo);
         if (cmp == 0) return root; 
         else if (cmp < 0) return searchResident(root->left, block, flatNo);
@@ -45,16 +67,18 @@ struct ResidentNode* searchResident(struct ResidentNode* root, char block, char 
     }
 }
 
-// 3. DELETION
-struct ResidentNode* findMinNode(struct ResidentNode* node) {
+struct ResidentNode* findMinNode(struct ResidentNode* node) 
+{
     struct ResidentNode* current = node;
-    while (current && current->left != NULL) {
+    while (current && current->left != NULL) 
+    {
         current = current->left;
     }
     return current;
 }
 
-struct ResidentNode* deleteResident(struct ResidentNode* root, char block, char flatNo[]) {
+struct ResidentNode* deleteResident(struct ResidentNode* root, char block, char flatNo[]) 
+{
     if (root == NULL) return root;
 
     if (block < root->block) {
@@ -93,4 +117,23 @@ struct ResidentNode* deleteResident(struct ResidentNode* root, char block, char 
         }
     }
     return root;
+}
+
+void inorderTraversal(struct ResidentNode* root) 
+{
+    if (root != NULL) {
+        inorderTraversal(root->left);
+        printf("Block: %c | Flat: %-5s | Name: %-20s | Phone: %s\n", 
+               root->block, root->flatNo, root->info.name, root->info.phone);
+        inorderTraversal(root->right);
+    }
+}
+
+void freeTree(struct ResidentNode* root) 
+{
+    if (root != NULL) {
+        freeTree(root->left);
+        freeTree(root->right);
+        free(root);
+    }
 }

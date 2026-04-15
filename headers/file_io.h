@@ -3,6 +3,6 @@
 #include "resident.h" 
 
 void saveAllData(struct ResidentNode* root);
-struct ResidentNode* loadAllData(struct ResidentNode* root);
+struct ResidentNode* loadAllData();
 
 #endif

@@ -8,7 +8,7 @@
 int main() {
     setupBlocks(); 
     struct ResidentNode* root = NULL; 
-    root = loadAllData(root);
+    root = loadAllData();
     int choice;
     char block;
     char flatNo[10];
@@ -53,7 +53,7 @@ int main() {
                     printf("Successfully added Flat %s to Block %c!\n", flatNo, block);
                 }
                 break;
-                
+
             case 2:
                 printf("\nEnter Block to Search (A-E): ");
                 scanf(" %c", &block);
