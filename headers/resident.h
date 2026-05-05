@@ -9,7 +9,8 @@ struct ResidentData {
 struct ResidentNode {
     char block;                  
     char flatNo[10];             
-    struct ResidentData info;    
+    struct ResidentData info;   
+    int height; 
     struct ResidentNode* left;   
     struct ResidentNode* right;  
 };

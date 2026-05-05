@@ -4,12 +4,16 @@
 struct PaymentNode {
     char block;
     char flatNo[10];
-    float amountOwed;
+    float amountDue;
+    struct PaymentNode* prev;
     struct PaymentNode* next;
 };
 
-void enqueue(char block, char flatNo[], float amount);
-void dequeue();
-void displayPaymentQueue();
+void addPendingBill(struct PaymentNode** head, struct PaymentNode** tail, char block, char flatNo[], float amount);
+int processPayment(struct PaymentNode** head, struct PaymentNode** tail, char block, char flatNo[]);
+void displayPendingPayments(struct PaymentNode* head);
+void savePayments(struct PaymentNode* head);
+void loadPayments(struct PaymentNode** head, struct PaymentNode** tail);
+int hasPendingPayment(struct PaymentNode* head, char block, char flatNo[]);
 
 #endif

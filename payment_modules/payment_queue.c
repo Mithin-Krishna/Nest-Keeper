@@ -3,59 +3,158 @@
 #include <string.h>
 #include "../headers/payment.h"
 
-struct PaymentNode* front = NULL;
-struct PaymentNode* rear = NULL;
-
-void enqueue(char block, char flatNo[], float amount) 
-{
+void addPendingBill(struct PaymentNode** head, struct PaymentNode** tail, char block, char flatNo[], float amount) {
+    // 1. Create the new bill
     struct PaymentNode* newNode = (struct PaymentNode*)malloc(sizeof(struct PaymentNode));
     newNode->block = block;
     strcpy(newNode->flatNo, flatNo);
-    newNode->amountOwed = amount;
+    newNode->amountDue = amount;
+    newNode->prev = NULL;
     newNode->next = NULL;
-    if (rear == NULL) 
-    {
-        front = rear = newNode;
-        printf("Added Block %c, Flat %s to the payment queue (Owes: INR. %.2f).\n", block, flatNo, amount);
+
+    // 2. If the list is empty, this is the first bill
+    if (*head == NULL) {
+        *head = newNode;
+        *tail = newNode;
+        printf("System: Added first pending bill for Block %c, Flat %s.\n", block, flatNo);
         return;
     }
-    rear->next = newNode;
-    rear = newNode;
-    printf("Added Block %c, Flat %s to the payment queue (Owes: INR. %.2f).\n", block, flatNo, amount);
+
+    // 3. Otherwise, attach it to the end of the queue (tail)
+    (*tail)->next = newNode;
+    newNode->prev = *tail;
+    *tail = newNode; // Update the tail pointer
+    
+    printf("System: Added pending bill for Block %c, Flat %s.\n", block, flatNo);
 }
 
-void dequeue() 
-{
-    if (front == NULL)
-    {
-        printf("The payment queue is currently empty. No pending dues!\n");
-        return;
-    }
-    struct PaymentNode* temp = front;
-    printf("SUCCESS: Payment of INR. %.2f received from Block %c, Flat %s. Cleared from queue!\n", temp->amountOwed, temp->block, temp->flatNo);
-    front = front->next;
-    if (front == NULL) 
-    {
-        rear = NULL;
-    }
-    free(temp);
-}
+int processPayment(struct PaymentNode** head, struct PaymentNode** tail, char block, char flatNo[]) {
+    struct PaymentNode* current = *head;
 
-void displayPaymentQueue() 
-{
-    if (front == NULL) 
-    {
-        printf("\n--- Payment Queue is Empty ---\n");
-        return;
-    }
-    struct PaymentNode* current = front;
-    int position = 1;
-    printf("\n--- Pending Payment Queue ---\n");
+    // Search through the queue
     while (current != NULL) 
     {
-        printf("%d. Block: %c | Flat: %s | Amount: INR. %.2f\n", position, current->block, current->flatNo, current->amountOwed);
+        if (current->block == block && strcmp(current->flatNo, flatNo) == 0) {
+            
+            // TARGET FOUND! Now we safely unlink it from the DLL.
+            
+            // Case A: Target is the ONLY node in the list
+            if (current->prev == NULL && current->next == NULL) {
+                *head = NULL;
+                *tail = NULL;
+            }
+            // Case B: Target is the HEAD (front of the queue)
+            else if (current->prev == NULL) {
+                *head = current->next;
+                (*head)->prev = NULL;
+            }
+            // Case C: Target is the TAIL (end of the queue)
+            else if (current->next == NULL) {
+                *tail = current->prev;
+                (*tail)->next = NULL;
+            }
+            // Case D: Target is in the MIDDLE (The exact problem you wanted to solve!)
+            else {
+                current->prev->next = current->next; // Connect left neighbor to right neighbor
+                current->next->prev = current->prev; // Connect right neighbor to left neighbor
+            }
+
+            printf("\n[SUCCESS] Payment of $%.2f processed for Block %c, Flat %s.\n", current->amountDue, block, flatNo);
+            
+            free(current);
+            return 1; 
+        }
         current = current->next;
-        position++;
     }
-    printf("-----------------------------\n");
+    printf("\n[ERROR] No pending bills found for Block %c, Flat %s.\n", block, flatNo);
+    return 0; 
+}
+
+void displayPendingPayments(struct PaymentNode* head)
+{
+    if (head == NULL) 
+    {
+        printf("\nAll caught up! No pending payments in the system.\n");
+        return;
+    }
+    struct PaymentNode* current = head;
+    printf("\n--- PENDING PAYMENTS QUEUE ---\n");
+    while (current != NULL) 
+    {
+        printf("Block: %c | Flat: %-5s | Amount Due: $%.2f\n", current->block, current->flatNo, current->amountDue);
+        current = current->next;
+    }
+    printf("------------------------------\n");
+}
+
+#pragma pack(push, 1)
+struct PaymentDiskRecord {
+    char block;
+    char flatNo[10];
+    float amountDue;
+};
+#pragma pack(pop)
+
+void savePayments(struct PaymentNode* head) {
+    FILE* file = fopen("payments.dat", "wb"); // Wipes and rewrites the current snapshot
+    if (file == NULL) {
+        printf("[ERROR] Could not save payment snapshot.\n");
+        return;
+    }
+
+    struct PaymentNode* current = head;
+    while (current != NULL) {
+        struct PaymentDiskRecord record;
+        record.block = current->block;
+        strcpy(record.flatNo, current->flatNo);
+        record.amountDue = current->amountDue;
+        
+        fwrite(&record, sizeof(struct PaymentDiskRecord), 1, file);
+        current = current->next;
+    }
+    fclose(file);
+}
+
+void loadPayments(struct PaymentNode** head, struct PaymentNode** tail) {
+    FILE* file = fopen("payments.dat", "rb");
+    if (file == NULL) return; 
+
+    struct PaymentDiskRecord record;
+    int count = 0;
+    
+    while (fread(&record, sizeof(struct PaymentDiskRecord), 1, file)) {
+        // Manually recreate the nodes to avoid triggering the "Added bill" printf spam on boot
+        struct PaymentNode* newNode = (struct PaymentNode*)malloc(sizeof(struct PaymentNode));
+        newNode->block = record.block;
+        strcpy(newNode->flatNo, record.flatNo);
+        newNode->amountDue = record.amountDue;
+        newNode->prev = NULL;
+        newNode->next = NULL;
+
+        if (*head == NULL) {
+            *head = newNode;
+            *tail = newNode;
+        } else {
+            (*tail)->next = newNode;
+            newNode->prev = *tail;
+            *tail = newNode;
+        }
+        count++;
+    }
+    
+    fclose(file);
+    if (count > 0) {
+        printf("[SYSTEM] Boot Sequence: Loaded %d pending payments into the queue.\n", count);
+    }
+}
+
+int hasPendingPayment(struct PaymentNode* head, char block, char flatNo[]) {
+    struct PaymentNode* current = head;
+    while (current != NULL) {
+        if (current->block == block && strcmp(current->flatNo, flatNo) == 0) {
+            return 1;
+        }
+        current = current->next;
+    }
+    return 0;
 }

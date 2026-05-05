@@ -1,59 +1,61 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../headers/resident.h" 
+#include "../headers/resident.h"
 
+
+#pragma pack(push, 1)
 struct DiskRecord {
     char block;
     char flatNo[10];
     char name[50];
     char phone[15];
 };
+#pragma pack(pop)
 
-void saveNodePreOrder(struct ResidentNode* root, FILE* file) 
-{
-    if (root == NULL) 
-    {
+void appendTransaction(char block, char flatNo[], char name[], char phone[]) {
+    FILE* file = fopen("database.dat", "ab");
+    if (file == NULL) {
+        printf("[ERROR] Could not open database to log transaction.\n");
         return;
     }
+
     struct DiskRecord record;
-    record.block = root->block;
-    strcpy(record.flatNo, root->flatNo);
-    strcpy(record.name, root->info.name);
-    strcpy(record.phone, root->info.phone);
+    record.block = block;
+    strcpy(record.flatNo, flatNo);
+    strcpy(record.name, name);
+    strcpy(record.phone, phone);
+
     fwrite(&record, sizeof(struct DiskRecord), 1, file);
-    saveNodePreOrder(root->left, file);
-    saveNodePreOrder(root->right, file);
-}
-
-void saveAllData(struct ResidentNode* root) 
-{
-    FILE* file = fopen("database.dat", "wb");
-    if (file == NULL) 
-    {
-        printf("[ERROR] Could not open database.dat for saving!\n");
-        return;
-    }
-    saveNodePreOrder(root, file);
     fclose(file);
-    printf("[SYSTEM] Success: All data securely locked in 'database.dat'.\n");
 }
 
-struct ResidentNode* loadAllData() 
-{
+struct ResidentNode* loadAllData() {
+    struct ResidentNode* root = NULL;
+    
+    // "rb" mode reads the transaction log from top to bottom
     FILE* file = fopen("database.dat", "rb");
-    struct ResidentNode* root = NULL; // Start with an empty tree
-    if (file == NULL) 
-    {
-        printf("[SYSTEM] No existing 'database.dat' found. Starting fresh database.\n");
-        return NULL;
+    if (file == NULL) {
+        return NULL; // No history found, starting fresh
     }
-    struct DiskRecord temp;
-    while (fread(&temp, sizeof(struct DiskRecord), 1, file) == 1) 
-    {
-        root = insertResident(root, temp.block, temp.flatNo, temp.name, temp.phone); 
+
+    struct DiskRecord record;
+    int loaded = 0;
+    
+    while (fread(&record, sizeof(struct DiskRecord), 1, file)) {
+        // TOMBSTONE CHECK: If the log says they were deleted later on, remove them from the tree!
+        if (strcmp(record.name, "DELETED") == 0) {
+            root = deleteResident(root, record.block, record.flatNo);
+        } else {
+            // Otherwise, insert them into our AVL tree
+            root = insertResident(root, record.block, record.flatNo, record.name, record.phone);
+            loaded++;
+        }
     }
+    
     fclose(file);
-    printf("[SYSTEM] Boot-up Sequence: Data securely loaded from 'database.dat'.\n");
-    return root; 
+    if (loaded > 0) {
+        printf("[SYSTEM] Boot Sequence: Successfully replayed transaction log.\n");
+    }
+    return root;
 }
