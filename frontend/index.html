@@ -3,229 +3,317 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Community Management System</title>
+    <title>Nest Keeper</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <div class="page-shell">
-        <header class="hero">
-            <div class="hero-copy">
-                <h1>Nest Keeper</h1>
-            </div>
-            <div class="hero-panel">
-                <div class="hero-card">
-                    <p>Backend status</p>
-                    <strong id="server-status">Connecting...</strong>
+    <div class="bg-orb bg-orb-one"></div>
+    <div class="bg-orb bg-orb-two"></div>
+
+    <main class="container-fluid px-3 px-lg-4 py-4">
+        <section class="hero-shell">
+            <div class="row g-4 align-items-stretch">
+                <div class="col-xl-8">
+                    <div class="glass-card hero-copy h-100">
+                        <p class="eyebrow">Community Dashboard</p>
+                        <h1>Nest Keeper</h1>
+                        <p class="hero-text">
+                            A responsive community management dashboard connected directly to the C backend for flats,
+                            residents, and payment dues.
+                        </p>
+                        <div class="map-card">
+                            <iframe
+                                title="Community location"
+                                src="https://www.google.com/maps?q=India&z=5&output=embed"
+                                loading="lazy"
+                                referrerpolicy="no-referrer-when-downgrade">
+                            </iframe>
+                        </div>
+                    </div>
                 </div>
-                <div class="hero-card">
-                    <p>Last refresh</p>
-                    <strong id="last-refresh">Waiting...</strong>
+                <div class="col-xl-4">
+                    <div class="glass-card status-stack h-100">
+                        <div class="status-tile">
+                            <p class="tile-label">Backend status</p>
+                            <strong id="server-status">Connecting...</strong>
+                        </div>
+                        <div class="status-tile">
+                            <p class="tile-label">Last refresh</p>
+                            <strong id="last-refresh">Waiting...</strong>
+                        </div>
+                        <div class="status-tile">
+                            <p class="tile-label">Rule note</p>
+                            <strong>Residents can be removed only after dues are cleared.</strong>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </header>
+        </section>
 
         <section class="stats-grid" id="stats-grid"></section>
 
-        <section class="workspace-grid">
-            <article class="panel panel-form">
-                <div class="panel-header">
-                    <h2>Add Flat</h2>
-                    <p>Create a new flat in blocks A to E.</p>
+        <section class="row g-4 mb-4">
+            <div class="col-lg-4">
+                <div class="glass-card h-100">
+                    <div class="section-head">
+                        <h2>Add Flat</h2>
+                        <p>Create new units in blocks A to E.</p>
+                    </div>
+                    <form id="flat-form" class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Block</label>
+                            <select class="form-select custom-input" name="block" required>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                                <option value="E">E</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Flat Number</label>
+                            <input class="form-control custom-input" type="text" name="flatNo" placeholder="101" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">BHK</label>
+                            <select class="form-select custom-input" name="bhk" required>
+                                <option value="1">1 BHK</option>
+                                <option value="2">2 BHK</option>
+                                <option value="3">3 BHK</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-brand w-100" type="submit">Add Flat</button>
+                        </div>
+                    </form>
                 </div>
-                <form id="flat-form" class="stack-form">
-                    <label>
-                        <span>Block</span>
-                        <select name="block" required>
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                            <option value="D">D</option>
-                            <option value="E">E</option>
-                        </select>
-                    </label>
-                    <label>
-                        <span>Flat Number</span>
-                        <input type="text" name="flatNo" placeholder="101" required>
-                    </label>
-                    <label>
-                        <span>BHK</span>
-                        <select name="bhk" required>
-                            <option value="1">1 BHK</option>
-                            <option value="2">2 BHK</option>
-                            <option value="3">3 BHK</option>
-                        </select>
-                    </label>
-                    <button type="submit">Add Flat</button>
-                </form>
-            </article>
+            </div>
 
-            <article class="panel panel-form">
-                <div class="panel-header">
-                    <h2>Add Resident</h2>
-                    <p>Assign a resident to an existing empty flat.</p>
+            <div class="col-lg-4">
+                <div class="glass-card h-100">
+                    <div class="section-head">
+                        <h2>Add Resident</h2>
+                        <p>Assign residents only to existing empty flats.</p>
+                    </div>
+                    <form id="resident-form" class="row g-3">
+                        <div class="col-md-6 col-lg-12">
+                            <label class="form-label">Block</label>
+                            <select class="form-select custom-input" name="block" required>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                                <option value="E">E</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 col-lg-12">
+                            <label class="form-label">Flat Number</label>
+                            <input class="form-control custom-input" type="text" name="flatNo" placeholder="101" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Resident Name</label>
+                            <input class="form-control custom-input" type="text" name="name" placeholder="Ananya Rao" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Phone</label>
+                            <input class="form-control custom-input" type="tel" name="phone" placeholder="9876543210" maxlength="10" pattern="[0-9]{10}" inputmode="numeric" required>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-brand w-100" type="submit">Add Resident</button>
+                        </div>
+                    </form>
                 </div>
-                <form id="resident-form" class="stack-form">
-                    <label>
-                        <span>Block</span>
-                        <select name="block" required>
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                            <option value="D">D</option>
-                            <option value="E">E</option>
-                        </select>
-                    </label>
-                    <label>
-                        <span>Flat Number</span>
-                        <input type="text" name="flatNo" placeholder="101" required>
-                    </label>
-                    <label>
-                        <span>Resident Name</span>
-                        <input type="text" name="name" placeholder="Ananya Rao" required>
-                    </label>
-                    <label>
-                        <span>Phone</span>
-                        <input type="text" name="phone" placeholder="9876543210" required>
-                    </label>
-                    <button type="submit">Add Resident</button>
-                </form>
-            </article>
+            </div>
 
-            <article class="panel panel-form">
-                <div class="panel-header">
-                    <h2>Add Payment Due</h2>
-                    <p>Raise a pending bill for an occupied flat.</p>
+            <div class="col-lg-4">
+                <div class="glass-card h-100">
+                    <div class="section-head">
+                        <h2>Add Payment Due</h2>
+                        <p>Multiple dues can be added to the same occupied flat.</p>
+                    </div>
+                    <form id="payment-form" class="row g-3">
+                        <div class="col-md-6 col-lg-12">
+                            <label class="form-label">Block</label>
+                            <select class="form-select custom-input" name="block" required>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                                <option value="E">E</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 col-lg-12">
+                            <label class="form-label">Flat Number</label>
+                            <input class="form-control custom-input" type="text" name="flatNo" placeholder="101" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Amount</label>
+                            <input class="form-control custom-input" type="number" name="amount" min="1" step="0.01" placeholder="2500" required>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-brand w-100" type="submit">Add Due</button>
+                        </div>
+                    </form>
                 </div>
-                <form id="payment-form" class="stack-form">
-                    <label>
-                        <span>Block</span>
-                        <select name="block" required>
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                            <option value="D">D</option>
-                            <option value="E">E</option>
-                        </select>
-                    </label>
-                    <label>
-                        <span>Flat Number</span>
-                        <input type="text" name="flatNo" placeholder="101" required>
-                    </label>
-                    <label>
-                        <span>Amount</span>
-                        <input type="number" name="amount" min="1" step="0.01" placeholder="2500" required>
-                    </label>
-                    <button type="submit">Add Payment</button>
-                </form>
-            </article>
+            </div>
         </section>
 
-        <section class="workspace-grid tables-grid">
-            <article class="panel panel-table">
-                <div class="panel-header row">
-                    <div>
-                        <h2>Flats</h2>
-                        <p>Browse all units or filter by availability and BHK.</p>
+        <section class="row g-4 mb-4">
+            <div class="col-xl-7">
+                <div class="glass-card h-100">
+                    <div class="section-head section-head-row">
+                        <div>
+                            <h2>Flats</h2>
+                            <p>Inspect occupancy, filter the list, and delete removable flats.</p>
+                        </div>
+                        <div class="filters-wrap">
+                            <select id="flat-filter-block" class="form-select custom-input compact-filter">
+                                <option value="">All Blocks</option>
+                                <option value="A">Block A</option>
+                                <option value="B">Block B</option>
+                                <option value="C">Block C</option>
+                                <option value="D">Block D</option>
+                                <option value="E">Block E</option>
+                            </select>
+                            <select id="flat-filter-bhk" class="form-select custom-input compact-filter">
+                                <option value="">All BHK</option>
+                                <option value="1">1 BHK</option>
+                                <option value="2">2 BHK</option>
+                                <option value="3">3 BHK</option>
+                            </select>
+                            <select id="flat-filter-status" class="form-select custom-input compact-filter">
+                                <option value="">All Status</option>
+                                <option value="0">Available</option>
+                                <option value="1">Occupied</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="inline-filters">
-                        <select id="flat-filter-block">
-                            <option value="">All Blocks</option>
-                            <option value="A">Block A</option>
-                            <option value="B">Block B</option>
-                            <option value="C">Block C</option>
-                            <option value="D">Block D</option>
-                            <option value="E">Block E</option>
-                        </select>
-                        <select id="flat-filter-bhk">
-                            <option value="">All BHK</option>
-                            <option value="1">1 BHK</option>
-                            <option value="2">2 BHK</option>
-                            <option value="3">3 BHK</option>
-                        </select>
-                        <select id="flat-filter-status">
-                            <option value="">All Status</option>
-                            <option value="0">Available</option>
-                            <option value="1">Occupied</option>
-                        </select>
+                    <div class="table-shell">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Block</th>
+                                    <th>Flat</th>
+                                    <th>BHK</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flats-body"></tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Block</th>
-                                <th>Flat</th>
-                                <th>BHK</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="flats-body"></tbody>
-                    </table>
-                </div>
-            </article>
+            </div>
 
-            <article class="panel panel-table">
-                <div class="panel-header row">
-                    <div>
-                        <h2>Residents</h2>
-                        <p>Track occupancy and remove residents when they move out.</p>
+            <div class="col-xl-5">
+                <div class="glass-card h-100">
+                    <div class="section-head section-head-row">
+                        <div>
+                            <h2>Residents</h2>
+                            <p>Removal is blocked while dues are pending.</p>
+                        </div>
+                        <input id="resident-search" class="form-control custom-input compact-search" type="search" placeholder="Search residents">
                     </div>
-                    <input id="resident-search" type="search" placeholder="Search by name, block, flat, or phone">
+                    <div class="table-shell">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Block</th>
+                                    <th>Flat</th>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="residents-body"></tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Block</th>
-                                <th>Flat</th>
-                                <th>Name</th>
-                                <th>Phone</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="residents-body"></tbody>
-                    </table>
-                </div>
-            </article>
+            </div>
         </section>
 
-        <section class="workspace-grid">
-            <article class="panel panel-table">
-                <div class="panel-header row">
-                    <div>
-                        <h2>Pending Payments</h2>
-                        <p>Process outstanding dues directly from the queue.</p>
+        <section class="row g-4">
+            <div class="col-xl-8">
+                <div class="glass-card h-100">
+                    <div class="section-head section-head-row">
+                        <div>
+                            <h2>Pending Payments Queue</h2>
+                            <p>The table keeps backend queue order. Processing removes the exact queue entry you click.</p>
+                        </div>
+                    </div>
+                    <div class="table-shell">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Block</th>
+                                    <th>Flat</th>
+                                    <th>Amount Due</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payments-body"></tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Block</th>
-                                <th>Flat</th>
-                                <th>Amount Due</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="payments-body"></tbody>
-                    </table>
-                </div>
-            </article>
+            </div>
 
-            <aside class="panel activity-panel">
-                <div class="panel-header">
-                    <h2>Activity Feed</h2>
-                    <p>Recent frontend actions and backend responses.</p>
+            <div class="col-xl-4">
+                <div class="glass-card h-100">
+                    <div class="section-head">
+                        <h2>Activity Feed</h2>
+                        <p>Frontend actions and backend responses appear here.</p>
+                    </div>
+                    <ul id="activity-feed" class="activity-feed"></ul>
                 </div>
-                <ul id="activity-feed" class="activity-feed"></ul>
-            </aside>
+            </div>
         </section>
+    </main>
+
+    <div class="modal fade" id="editResidentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-card">
+                <div class="modal-header border-0">
+                    <div>
+                        <h5 class="modal-title">Edit Occupant</h5>
+                        <p class="modal-copy mb-0">Update the resident name and phone number for the selected flat.</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-0">
+                    <form id="edit-resident-form" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Block</label>
+                            <input class="form-control custom-input" type="text" name="block" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Flat</label>
+                            <input class="form-control custom-input" type="text" name="flatNo" readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Phone</label>
+                            <input class="form-control custom-input" type="tel" name="phone" maxlength="10" pattern="[0-9]{10}" inputmode="numeric" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Resident Name</label>
+                            <input class="form-control custom-input" type="text" name="name" required>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-brand w-100" type="submit">Save Occupant</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div id="toast" class="toast" aria-live="polite"></div>
+    <div id="toast" class="toast-shell" aria-live="polite"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/app.js"></script>
 </body>
 </html>

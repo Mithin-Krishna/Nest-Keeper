@@ -17,6 +17,8 @@ void searchBHK(char targetBlock, int desiredBhk);
 int doesFlatExist(char block, char flatNo[]);
 void updateFlatStatus(char block, char flatNo[], int newStatus);
 struct Flat* findFlat(char block, char flatNo[]);
+int updateFlat(char oldBlock, char oldFlatNo[], char newBlock, char newFlatNo[], int newBhk);
+int deleteFlat(char block, char flatNo[]);
 void saveFlats();
 void loadFlats();
 

@@ -162,6 +162,48 @@ static double sumPendingPayments(struct PaymentNode* head) {
     return total;
 }
 
+static void trimSpaces(char* text) {
+    char* start = text;
+    char* end;
+    size_t length;
+
+    while (*start != '\0' && isspace((unsigned char)*start)) {
+        start++;
+    }
+
+    if (start != text) {
+        memmove(text, start, strlen(start) + 1);
+    }
+
+    length = strlen(text);
+    if (length == 0) {
+        return;
+    }
+
+    end = text + length - 1;
+    while (end >= text && isspace((unsigned char)*end)) {
+        *end = '\0';
+        end--;
+    }
+}
+
+static int isValidPhoneNumber(const char* phone) {
+    size_t length = strlen(phone);
+    size_t index;
+
+    if (length != 10) {
+        return 0;
+    }
+
+    for (index = 0; index < length; index++) {
+        if (!isdigit((unsigned char)phone[index])) {
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
 static void appendFlatsJson(struct StringBuilder* sb) {
     int index;
     int first = 1;
@@ -231,6 +273,7 @@ static void appendResidentsJson(struct StringBuilder* sb) {
 
 static void appendPaymentsJson(struct StringBuilder* sb) {
     int first = 1;
+    int queueIndex = 0;
     struct PaymentNode* current = gPaymentHead;
 
     sbAppend(sb, "[");
@@ -248,10 +291,11 @@ static void appendPaymentsJson(struct StringBuilder* sb) {
         }
         sbAppend(sb, ",\"flatNo\":");
         sbAppendJsonString(sb, current->flatNo);
-        sbAppendFormat(sb, ",\"amountDue\":%.2f}", current->amountDue);
+        sbAppendFormat(sb, ",\"amountDue\":%.2f,\"queueIndex\":%d}", current->amountDue, queueIndex);
 
         first = 0;
         current = current->next;
+        queueIndex++;
     }
     sbAppend(sb, "]");
 }
@@ -317,6 +361,18 @@ static void syncFlatOccupancy(void) {
     resetFlatStatuses();
     markOccupiedFlats(gResidentRoot);
     saveFlats();
+}
+
+static void rewriteResidentDetails(char block, char flatNo[], char name[], char phone[]) {
+    struct ResidentNode* resident = searchResident(gResidentRoot, block, flatNo);
+    if (resident == NULL) {
+        return;
+    }
+
+    gResidentRoot = deleteResident(gResidentRoot, block, flatNo);
+    appendTransaction(block, flatNo, "DELETED", "");
+    gResidentRoot = insertResident(gResidentRoot, block, flatNo, name, phone);
+    appendTransaction(block, flatNo, name, phone);
 }
 
 static char hexValue(char c) {
@@ -576,6 +632,7 @@ static void handleAddFlat(SOCKET clientSocket, const char* body) {
     }
 
     block = (char)toupper((unsigned char)blockText[0]);
+    trimSpaces(flatNo);
     bhk = atoi(bhkText);
 
     if (block < 'A' || block > 'E') {
@@ -612,10 +669,21 @@ static void handleAddResident(SOCKET clientSocket, const char* body) {
     }
 
     block = (char)toupper((unsigned char)blockText[0]);
+    trimSpaces(flatNo);
+    trimSpaces(name);
+    trimSpaces(phone);
     flat = findFlat(block, flatNo);
 
     if (flat == NULL) {
         sendJsonMessage(clientSocket, "404 Not Found", 0, "Create the flat before assigning a resident.");
+        return;
+    }
+    if (name[0] == '\0' || phone[0] == '\0') {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Resident name and phone are required.");
+        return;
+    }
+    if (!isValidPhoneNumber(phone)) {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Phone number must contain exactly 10 digits.");
         return;
     }
     if (searchResident(gResidentRoot, block, flatNo) != NULL) {
@@ -641,8 +709,13 @@ static void handleDeleteResident(SOCKET clientSocket, const char* body) {
     }
 
     block = (char)toupper((unsigned char)blockText[0]);
+    trimSpaces(flatNo);
     if (searchResident(gResidentRoot, block, flatNo) == NULL) {
         sendJsonMessage(clientSocket, "404 Not Found", 0, "No resident was found for that flat.");
+        return;
+    }
+    if (hasPendingPayment(gPaymentHead, block, flatNo)) {
+        sendJsonMessage(clientSocket, "409 Conflict", 0, "Clear all pending dues before removing this resident.");
         return;
     }
 
@@ -650,6 +723,77 @@ static void handleDeleteResident(SOCKET clientSocket, const char* body) {
     appendTransaction(block, flatNo, "DELETED", "");
     updateFlatStatus(block, flatNo, 0);
     sendJsonMessage(clientSocket, "200 OK", 1, "Resident removed successfully.");
+}
+
+static void handleUpdateResident(SOCKET clientSocket, const char* body) {
+    char blockText[8];
+    char flatNo[32];
+    char name[64];
+    char phone[32];
+    char block;
+
+    if (!getParamValue(body, "block", blockText, sizeof(blockText)) ||
+        !getParamValue(body, "flatNo", flatNo, sizeof(flatNo)) ||
+        !getParamValue(body, "name", name, sizeof(name)) ||
+        !getParamValue(body, "phone", phone, sizeof(phone))) {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Resident block, flat, name, and phone are required.");
+        return;
+    }
+
+    block = (char)toupper((unsigned char)blockText[0]);
+    trimSpaces(flatNo);
+    trimSpaces(name);
+    trimSpaces(phone);
+
+    if (name[0] == '\0' || phone[0] == '\0') {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Occupant name and phone cannot be empty.");
+        return;
+    }
+    if (!isValidPhoneNumber(phone)) {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Phone number must contain exactly 10 digits.");
+        return;
+    }
+    if (searchResident(gResidentRoot, block, flatNo) == NULL) {
+        sendJsonMessage(clientSocket, "404 Not Found", 0, "No resident was found for that flat.");
+        return;
+    }
+
+    rewriteResidentDetails(block, flatNo, name, phone);
+    sendJsonMessage(clientSocket, "200 OK", 1, "Occupant details updated successfully.");
+}
+
+static void handleDeleteFlat(SOCKET clientSocket, const char* body) {
+    char blockText[8];
+    char flatNo[32];
+    char block;
+
+    if (!getParamValue(body, "block", blockText, sizeof(blockText)) ||
+        !getParamValue(body, "flatNo", flatNo, sizeof(flatNo))) {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Block and flat number are required.");
+        return;
+    }
+
+    block = (char)toupper((unsigned char)blockText[0]);
+    trimSpaces(flatNo);
+
+    if (findFlat(block, flatNo) == NULL) {
+        sendJsonMessage(clientSocket, "404 Not Found", 0, "The flat was not found.");
+        return;
+    }
+    if (searchResident(gResidentRoot, block, flatNo) != NULL) {
+        sendJsonMessage(clientSocket, "409 Conflict", 0, "Remove the occupant before deleting this flat.");
+        return;
+    }
+    if (hasPendingPayment(gPaymentHead, block, flatNo)) {
+        sendJsonMessage(clientSocket, "409 Conflict", 0, "Clear all dues before deleting this flat.");
+        return;
+    }
+    if (!deleteFlat(block, flatNo)) {
+        sendJsonMessage(clientSocket, "500 Internal Server Error", 0, "The flat could not be deleted.");
+        return;
+    }
+
+    sendJsonMessage(clientSocket, "200 OK", 1, "Flat deleted successfully.");
 }
 
 static void handleAddPayment(SOCKET clientSocket, const char* body) {
@@ -667,6 +811,7 @@ static void handleAddPayment(SOCKET clientSocket, const char* body) {
     }
 
     block = (char)toupper((unsigned char)blockText[0]);
+    trimSpaces(flatNo);
     amount = (float)atof(amountText);
 
     if (searchResident(gResidentRoot, block, flatNo) == NULL) {
@@ -677,10 +822,6 @@ static void handleAddPayment(SOCKET clientSocket, const char* body) {
         sendJsonMessage(clientSocket, "400 Bad Request", 0, "Amount must be greater than zero.");
         return;
     }
-    if (hasPendingPayment(gPaymentHead, block, flatNo)) {
-        sendJsonMessage(clientSocket, "409 Conflict", 0, "There is already a pending payment for that flat.");
-        return;
-    }
 
     addPendingBill(&gPaymentHead, &gPaymentTail, block, flatNo, amount);
     savePayments(gPaymentHead);
@@ -688,17 +829,32 @@ static void handleAddPayment(SOCKET clientSocket, const char* body) {
 }
 
 static void handleProcessPayment(SOCKET clientSocket, const char* body) {
+    char queueIndexText[16];
     char blockText[8];
     char flatNo[32];
     char block;
+    int queueIndex;
+
+    if (getParamValue(body, "queueIndex", queueIndexText, sizeof(queueIndexText))) {
+        queueIndex = atoi(queueIndexText);
+        if (!processPaymentAtIndex(&gPaymentHead, &gPaymentTail, queueIndex)) {
+            sendJsonMessage(clientSocket, "404 Not Found", 0, "No pending payment was found at that queue position.");
+            return;
+        }
+
+        savePayments(gPaymentHead);
+        sendJsonMessage(clientSocket, "200 OK", 1, "Payment processed successfully.");
+        return;
+    }
 
     if (!getParamValue(body, "block", blockText, sizeof(blockText)) ||
         !getParamValue(body, "flatNo", flatNo, sizeof(flatNo))) {
-        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Block and flat number are required.");
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Queue index or flat details are required.");
         return;
     }
 
     block = (char)toupper((unsigned char)blockText[0]);
+    trimSpaces(flatNo);
     if (!processPayment(&gPaymentHead, &gPaymentTail, block, flatNo)) {
         sendJsonMessage(clientSocket, "404 Not Found", 0, "No pending payment was found for that flat.");
         return;
@@ -721,6 +877,16 @@ static void handleApiRoute(SOCKET clientSocket, const char* method, const char* 
 
     if (strcmp(method, "POST") == 0 && strcmp(path, "/api/residents/add") == 0) {
         handleAddResident(clientSocket, body);
+        return;
+    }
+
+    if (strcmp(method, "POST") == 0 && strcmp(path, "/api/residents/update") == 0) {
+        handleUpdateResident(clientSocket, body);
+        return;
+    }
+
+    if (strcmp(method, "POST") == 0 && strcmp(path, "/api/flats/delete") == 0) {
+        handleDeleteFlat(clientSocket, body);
         return;
     }
 
@@ -780,13 +946,11 @@ int main(void) {
     syncFlatOccupancy();
 
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        printf("Failed to initialize Winsock.\n");
         return 1;
     }
 
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == INVALID_SOCKET) {
-        printf("Failed to create server socket.\n");
         WSACleanup();
         return 1;
     }
@@ -796,21 +960,16 @@ int main(void) {
     serverAddress.sin_port = htons(SERVER_PORT);
 
     if (bind(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR) {
-        printf("Failed to bind server to port %d.\n", SERVER_PORT);
         closesocket(serverSocket);
         WSACleanup();
         return 1;
     }
 
     if (listen(serverSocket, 10) == SOCKET_ERROR) {
-        printf("Failed to start listening on port %d.\n", SERVER_PORT);
         closesocket(serverSocket);
         WSACleanup();
         return 1;
     }
-
-    printf("Community management web app is running at http://localhost:%d\n", SERVER_PORT);
-    printf("Press Ctrl+C to stop the server.\n");
 
     while (1) {
         SOCKET clientSocket = accept(serverSocket, NULL, NULL);

@@ -16,7 +16,6 @@ struct DiskRecord {
 void appendTransaction(char block, char flatNo[], char name[], char phone[]) {
     FILE* file = fopen("database.dat", "ab");
     if (file == NULL) {
-        printf("[ERROR] Could not open database to log transaction.\n");
         return;
     }
 
@@ -40,22 +39,15 @@ struct ResidentNode* loadAllData() {
     }
 
     struct DiskRecord record;
-    int loaded = 0;
     
     while (fread(&record, sizeof(struct DiskRecord), 1, file)) {
-        // TOMBSTONE CHECK: If the log says they were deleted later on, remove them from the tree!
         if (strcmp(record.name, "DELETED") == 0) {
             root = deleteResident(root, record.block, record.flatNo);
         } else {
-            // Otherwise, insert them into our AVL tree
             root = insertResident(root, record.block, record.flatNo, record.name, record.phone);
-            loaded++;
         }
     }
     
     fclose(file);
-    if (loaded > 0) {
-        printf("[SYSTEM] Boot Sequence: Successfully replayed transaction log.\n");
-    }
     return root;
 }

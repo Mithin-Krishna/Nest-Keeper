@@ -16,7 +16,6 @@ void addPendingBill(struct PaymentNode** head, struct PaymentNode** tail, char b
     if (*head == NULL) {
         *head = newNode;
         *tail = newNode;
-        printf("System: Added first pending bill for Block %c, Flat %s.\n", block, flatNo);
         return;
     }
 
@@ -24,8 +23,6 @@ void addPendingBill(struct PaymentNode** head, struct PaymentNode** tail, char b
     (*tail)->next = newNode;
     newNode->prev = *tail;
     *tail = newNode; // Update the tail pointer
-    
-    printf("System: Added pending bill for Block %c, Flat %s.\n", block, flatNo);
 }
 
 int processPayment(struct PaymentNode** head, struct PaymentNode** tail, char block, char flatNo[]) {
@@ -59,32 +56,56 @@ int processPayment(struct PaymentNode** head, struct PaymentNode** tail, char bl
                 current->next->prev = current->prev; // Connect right neighbor to left neighbor
             }
 
-            printf("\n[SUCCESS] Payment of $%.2f processed for Block %c, Flat %s.\n", current->amountDue, block, flatNo);
-            
             free(current);
             return 1; 
         }
         current = current->next;
     }
-    printf("\n[ERROR] No pending bills found for Block %c, Flat %s.\n", block, flatNo);
     return 0; 
+}
+
+int processPaymentAtIndex(struct PaymentNode** head, struct PaymentNode** tail, int queueIndex) {
+    int currentIndex = 0;
+    struct PaymentNode* current = *head;
+
+    while (current != NULL) {
+        if (currentIndex == queueIndex) {
+            if (current->prev == NULL && current->next == NULL) {
+                *head = NULL;
+                *tail = NULL;
+            } else if (current->prev == NULL) {
+                *head = current->next;
+                (*head)->prev = NULL;
+            } else if (current->next == NULL) {
+                *tail = current->prev;
+                (*tail)->next = NULL;
+            } else {
+                current->prev->next = current->next;
+                current->next->prev = current->prev;
+            }
+
+            free(current);
+            return 1;
+        }
+
+        current = current->next;
+        currentIndex++;
+    }
+
+    return 0;
 }
 
 void displayPendingPayments(struct PaymentNode* head)
 {
     if (head == NULL) 
     {
-        printf("\nAll caught up! No pending payments in the system.\n");
         return;
     }
     struct PaymentNode* current = head;
-    printf("\n--- PENDING PAYMENTS QUEUE ---\n");
     while (current != NULL) 
     {
-        printf("Block: %c | Flat: %-5s | Amount Due: $%.2f\n", current->block, current->flatNo, current->amountDue);
         current = current->next;
     }
-    printf("------------------------------\n");
 }
 
 #pragma pack(push, 1)
@@ -98,7 +119,6 @@ struct PaymentDiskRecord {
 void savePayments(struct PaymentNode* head) {
     FILE* file = fopen("payments.dat", "wb"); // Wipes and rewrites the current snapshot
     if (file == NULL) {
-        printf("[ERROR] Could not save payment snapshot.\n");
         return;
     }
 
@@ -141,11 +161,7 @@ void loadPayments(struct PaymentNode** head, struct PaymentNode** tail) {
         }
         count++;
     }
-    
     fclose(file);
-    if (count > 0) {
-        printf("[SYSTEM] Boot Sequence: Loaded %d pending payments into the queue.\n", count);
-    }
 }
 
 int hasPendingPayment(struct PaymentNode* head, char block, char flatNo[]) {
@@ -157,4 +173,15 @@ int hasPendingPayment(struct PaymentNode* head, char block, char flatNo[]) {
         current = current->next;
     }
     return 0;
+}
+
+void updatePaymentReferences(struct PaymentNode* head, char oldBlock, char oldFlatNo[], char newBlock, char newFlatNo[]) {
+    struct PaymentNode* current = head;
+    while (current != NULL) {
+        if (current->block == oldBlock && strcmp(current->flatNo, oldFlatNo) == 0) {
+            current->block = newBlock;
+            strcpy(current->flatNo, newFlatNo);
+        }
+        current = current->next;
+    }
 }

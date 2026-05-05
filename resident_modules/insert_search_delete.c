@@ -93,7 +93,6 @@ struct ResidentNode* insertResident(struct ResidentNode* root, char block, char 
     } else if (cmp > 0) {
         root->right = insertResident(root->right, block, flatNo, name, phone);
     } else {
-        printf("Notice: Updating roommate %s to Block %c, Flat %s\n", name, block, flatNo);
         return root; // No duplicates allowed in this logic structure
     }
 
@@ -217,9 +216,6 @@ struct ResidentNode* deleteResident(struct ResidentNode* root, char block, char 
 void inorderTraversal(struct ResidentNode* root) {
     if (root != NULL) {
         inorderTraversal(root->left);
-        // Swapped the Balance factor back to the Phone Number
-        printf("Block: %c | Flat: %-5s | Name: %-20s | Phone: %s\n", 
-               root->block, root->flatNo, root->info.name, root->info.phone);
         inorderTraversal(root->right);
     }
 }

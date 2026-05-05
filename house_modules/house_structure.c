@@ -38,8 +38,7 @@ void addFlat(char flatNo[], char block, int bhk)
     else if (block == 'E') index = 4;
     else 
     {
-        printf("Invalid Block!\n");
-        free(newFlat); // Prevent memory leak on fail
+        free(newFlat);
         return;
     }
     
@@ -96,7 +95,6 @@ struct Flat* findFlat(char block, char flatNo[]) {
 void saveFlats() {
     FILE* file = fopen("flats.dat", "wb");
     if (file == NULL) {
-        printf("[ERROR] Could not save flats snapshot.\n");
         return;
     }
 
@@ -114,6 +112,83 @@ void saveFlats() {
     }
 
     fclose(file);
+}
+
+int updateFlat(char oldBlock, char oldFlatNo[], char newBlock, char newFlatNo[], int newBhk) {
+    int oldIndex = oldBlock - 'A';
+    int newIndex = newBlock - 'A';
+    struct Flat* current;
+    struct Flat* previous = NULL;
+
+    if (oldIndex < 0 || oldIndex > 4 || newIndex < 0 || newIndex > 4) {
+        return 0;
+    }
+
+    current = communityBlocks[oldIndex];
+    while (current != NULL) {
+        if (strcmp(current->flatNo, oldFlatNo) == 0) {
+            break;
+        }
+        previous = current;
+        current = current->next;
+    }
+
+    if (current == NULL) {
+        return 0;
+    }
+
+    if ((oldBlock != newBlock || strcmp(oldFlatNo, newFlatNo) != 0) &&
+        doesFlatExist(newBlock, newFlatNo)) {
+        return 0;
+    }
+
+    if (previous == NULL) {
+        communityBlocks[oldIndex] = current->next;
+    } else {
+        previous->next = current->next;
+    }
+
+    current->block = newBlock;
+    strcpy(current->flatNo, newFlatNo);
+    current->bhk = newBhk;
+    current->next = communityBlocks[newIndex];
+    communityBlocks[newIndex] = current;
+
+    saveFlats();
+    return 1;
+}
+
+int deleteFlat(char block, char flatNo[]) {
+    int index = block - 'A';
+    struct Flat* current;
+    struct Flat* previous = NULL;
+
+    if (index < 0 || index > 4) {
+        return 0;
+    }
+
+    current = communityBlocks[index];
+    while (current != NULL) {
+        if (strcmp(current->flatNo, flatNo) == 0) {
+            break;
+        }
+        previous = current;
+        current = current->next;
+    }
+
+    if (current == NULL) {
+        return 0;
+    }
+
+    if (previous == NULL) {
+        communityBlocks[index] = current->next;
+    } else {
+        previous->next = current->next;
+    }
+
+    free(current);
+    saveFlats();
+    return 1;
 }
 
 void loadFlats() {
