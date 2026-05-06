@@ -4,7 +4,6 @@
 #include "../headers/payment.h"
 
 void addPendingBill(struct PaymentNode** head, struct PaymentNode** tail, char block, char flatNo[], float amount) {
-    // 1. Create the new bill
     struct PaymentNode* newNode = (struct PaymentNode*)malloc(sizeof(struct PaymentNode));
     newNode->block = block;
     strcpy(newNode->flatNo, flatNo);
@@ -12,50 +11,40 @@ void addPendingBill(struct PaymentNode** head, struct PaymentNode** tail, char b
     newNode->prev = NULL;
     newNode->next = NULL;
 
-    // 2. If the list is empty, this is the first bill
     if (*head == NULL) {
         *head = newNode;
         *tail = newNode;
         return;
     }
 
-    // 3. Otherwise, attach it to the end of the queue (tail)
     (*tail)->next = newNode;
     newNode->prev = *tail;
-    *tail = newNode; // Update the tail pointer
+    *tail = newNode; 
 }
 
 int processPayment(struct PaymentNode** head, struct PaymentNode** tail, char block, char flatNo[]) {
     struct PaymentNode* current = *head;
 
-    // Search through the queue
     while (current != NULL) 
     {
         if (current->block == block && strcmp(current->flatNo, flatNo) == 0) {
             
-            // TARGET FOUND! Now we safely unlink it from the DLL.
-            
-            // Case A: Target is the ONLY node in the list
             if (current->prev == NULL && current->next == NULL) {
                 *head = NULL;
                 *tail = NULL;
             }
-            // Case B: Target is the HEAD (front of the queue)
             else if (current->prev == NULL) {
                 *head = current->next;
                 (*head)->prev = NULL;
             }
-            // Case C: Target is the TAIL (end of the queue)
             else if (current->next == NULL) {
                 *tail = current->prev;
                 (*tail)->next = NULL;
             }
-            // Case D: Target is in the MIDDLE (The exact problem you wanted to solve!)
             else {
                 current->prev->next = current->next; // Connect left neighbor to right neighbor
                 current->next->prev = current->prev; // Connect right neighbor to left neighbor
             }
-
             free(current);
             return 1; 
         }
@@ -67,7 +56,6 @@ int processPayment(struct PaymentNode** head, struct PaymentNode** tail, char bl
 int processPaymentAtIndex(struct PaymentNode** head, struct PaymentNode** tail, int queueIndex) {
     int currentIndex = 0;
     struct PaymentNode* current = *head;
-
     while (current != NULL) {
         if (currentIndex == queueIndex) {
             if (current->prev == NULL && current->next == NULL) {
@@ -83,15 +71,12 @@ int processPaymentAtIndex(struct PaymentNode** head, struct PaymentNode** tail, 
                 current->prev->next = current->next;
                 current->next->prev = current->prev;
             }
-
             free(current);
             return 1;
         }
-
         current = current->next;
         currentIndex++;
     }
-
     return 0;
 }
 
@@ -121,14 +106,12 @@ void savePayments(struct PaymentNode* head) {
     if (file == NULL) {
         return;
     }
-
     struct PaymentNode* current = head;
     while (current != NULL) {
         struct PaymentDiskRecord record;
         record.block = current->block;
         strcpy(record.flatNo, current->flatNo);
         record.amountDue = current->amountDue;
-        
         fwrite(&record, sizeof(struct PaymentDiskRecord), 1, file);
         current = current->next;
     }
@@ -143,7 +126,6 @@ void loadPayments(struct PaymentNode** head, struct PaymentNode** tail) {
     int count = 0;
     
     while (fread(&record, sizeof(struct PaymentDiskRecord), 1, file)) {
-        // Manually recreate the nodes to avoid triggering the "Added bill" printf spam on boot
         struct PaymentNode* newNode = (struct PaymentNode*)malloc(sizeof(struct PaymentNode));
         newNode->block = record.block;
         strcpy(newNode->flatNo, record.flatNo);
