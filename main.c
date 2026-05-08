@@ -508,11 +508,17 @@ static void serveStaticFile(SOCKET clientSocket, const char* path) {
     if (strcmp(path, "/") == 0 || strcmp(path, "/index.html") == 0) {
         mappedPath = "frontend/index.html";
         contentType = "text/html; charset=utf-8";
+    } else if (strcmp(path, "/bootstrap.min.css") == 0) {
+        mappedPath = "frontend/bootstrap.min.css";
+        contentType = "text/css; charset=utf-8";
     } else if (strcmp(path, "/styles.css") == 0) {
         mappedPath = "frontend/styles.css";
         contentType = "text/css; charset=utf-8";
     } else if (strcmp(path, "/app.js") == 0) {
         mappedPath = "frontend/app.js";
+        contentType = "application/javascript; charset=utf-8";
+    } else if (strcmp(path, "/bootstrap.bundle.min.js") == 0) {
+        mappedPath = "frontend/bootstrap.bundle.min.js";
         contentType = "application/javascript; charset=utf-8";
     }
 

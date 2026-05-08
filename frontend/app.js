@@ -85,6 +85,10 @@ function isOccupied(block, flatNo) {
     return state.data.residents.some((resident) => resident.block === block && resident.flatNo === flatNo);
 }
 
+function findResident(block, flatNo) {
+    return state.data.residents.find((resident) => resident.block === block && resident.flatNo === flatNo) || null;
+}
+
 function flatMatchesFilters(flat) {
     const block = document.getElementById("flat-filter-block").value;
     const bhk = document.getElementById("flat-filter-bhk").value;
@@ -167,9 +171,7 @@ function renderResidents() {
                         class="btn btn-sm btn-soft"
                         data-action="edit-resident"
                         data-block="${resident.block}"
-                        data-flat="${resident.flatNo}"
-                        data-name="${resident.name}"
-                        data-phone="${resident.phone}">
+                        data-flat="${resident.flatNo}">
                         Edit
                     </button>
                     <button
@@ -334,11 +336,18 @@ function wireTableActions() {
         const action = button.dataset.action;
 
         if (action === "edit-resident") {
+            const resident = findResident(button.dataset.block, button.dataset.flat);
+            if (!resident) {
+                addActivity("Resident lookup failed", "Could not load the selected occupant details.");
+                showToast("Could not load the selected occupant details.", true);
+                return;
+            }
+
             fillEditResidentForm(
-                button.dataset.block,
-                button.dataset.flat,
-                button.dataset.name,
-                button.dataset.phone
+                resident.block,
+                resident.flatNo,
+                resident.name,
+                resident.phone
             );
             if (editResidentModal) {
                 editResidentModal.show();
