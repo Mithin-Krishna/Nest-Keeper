@@ -6,6 +6,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
+#include "headers/complaint.h"
 #include "headers/file_io.h"
 #include "headers/house.h"
 #include "headers/payment.h"
@@ -17,6 +18,7 @@
 struct ResidentNode* gResidentRoot = NULL;
 struct PaymentNode* gPaymentHead = NULL;
 struct PaymentNode* gPaymentTail = NULL;
+struct ComplaintHeap gComplaintHeap;
 
 struct StringBuilder {
     char* data;
@@ -162,6 +164,22 @@ static double sumPendingPayments(struct PaymentNode* head) {
     return total;
 }
 
+static int countComplaints(const struct ComplaintHeap* heap) {
+    return getComplaintCount(heap);
+}
+
+static int hasActiveComplaint(const struct ComplaintHeap* heap, char block, const char* flatNo) {
+    int index;
+
+    for (index = 0; index < heap->size; index++) {
+        if (heap->items[index].block == block && strcmp(heap->items[index].flatNo, flatNo) == 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static void trimSpaces(char* text) {
     char* start = text;
     char* end;
@@ -202,6 +220,22 @@ static int isValidPhoneNumber(const char* phone) {
     }
 
     return 1;
+}
+
+static int isValidComplaintStatus(const char* status) {
+    return strcmp(status, "Pending") == 0 ||
+        strcmp(status, "In Progress") == 0 ||
+        strcmp(status, "Resolved") == 0;
+}
+
+static const char* getPriorityLabel(int priority) {
+    if (priority >= 3) {
+        return "High";
+    }
+    if (priority == 2) {
+        return "Medium";
+    }
+    return "Low";
 }
 
 static void appendFlatsJson(struct StringBuilder* sb) {
@@ -300,25 +334,73 @@ static void appendPaymentsJson(struct StringBuilder* sb) {
     sbAppend(sb, "]");
 }
 
+static void appendComplaintsJson(struct StringBuilder* sb) {
+    int count = countComplaints(&gComplaintHeap);
+    int index;
+    struct ComplaintRecord* complaints;
+
+    sbAppend(sb, "[");
+    if (count <= 0) {
+        sbAppend(sb, "]");
+        return;
+    }
+
+    complaints = (struct ComplaintRecord*)malloc((size_t)count * sizeof(struct ComplaintRecord));
+    if (complaints == NULL) {
+        sbAppend(sb, "]");
+        return;
+    }
+
+    count = fillComplaintsByPriority(&gComplaintHeap, complaints, count);
+    for (index = 0; index < count; index++) {
+        char blockText[2];
+        if (index > 0) {
+            sbAppend(sb, ",");
+        }
+
+        blockText[0] = complaints[index].block;
+        blockText[1] = '\0';
+
+        sbAppendFormat(sb, "{\"id\":%d,\"block\":", complaints[index].id);
+        sbAppendJsonString(sb, blockText);
+        sbAppend(sb, ",\"flatNo\":");
+        sbAppendJsonString(sb, complaints[index].flatNo);
+        sbAppend(sb, ",\"type\":");
+        sbAppendJsonString(sb, complaints[index].type);
+        sbAppend(sb, ",\"description\":");
+        sbAppendJsonString(sb, complaints[index].description);
+        sbAppendFormat(sb, ",\"priority\":%d,\"priorityLabel\":", complaints[index].priority);
+        sbAppendJsonString(sb, getPriorityLabel(complaints[index].priority));
+        sbAppend(sb, ",\"status\":");
+        sbAppendJsonString(sb, complaints[index].status);
+        sbAppend(sb, "}");
+    }
+
+    free(complaints);
+    sbAppend(sb, "]");
+}
+
 static char* buildStateJson(void) {
     struct StringBuilder sb;
     int totalFlats = countFlats();
     int occupiedFlats = countOccupiedFlats();
     int residentCount = countResidents(gResidentRoot);
     int paymentCount = countPendingPayments(gPaymentHead);
+    int complaintCount = countComplaints(&gComplaintHeap);
     double pendingAmount = sumPendingPayments(gPaymentHead);
 
     sbInit(&sb);
     sbAppend(&sb, "{\"summary\":{");
     sbAppendFormat(
         &sb,
-        "\"flats\":%d,\"occupied\":%d,\"available\":%d,\"residents\":%d,\"pendingPayments\":%d,\"pendingAmount\":%.2f",
+        "\"flats\":%d,\"occupied\":%d,\"available\":%d,\"residents\":%d,\"pendingPayments\":%d,\"pendingAmount\":%.2f,\"complaints\":%d",
         totalFlats,
         occupiedFlats,
         totalFlats - occupiedFlats,
         residentCount,
         paymentCount,
-        pendingAmount
+        pendingAmount,
+        complaintCount
     );
     sbAppend(&sb, "},\"flats\":");
     appendFlatsJson(&sb);
@@ -326,6 +408,8 @@ static char* buildStateJson(void) {
     appendResidentsJson(&sb);
     sbAppend(&sb, ",\"payments\":");
     appendPaymentsJson(&sb);
+    sbAppend(&sb, ",\"complaints\":");
+    appendComplaintsJson(&sb);
     sbAppend(&sb, "}");
 
     return sb.data;
@@ -794,6 +878,10 @@ static void handleDeleteFlat(SOCKET clientSocket, const char* body) {
         sendJsonMessage(clientSocket, "409 Conflict", 0, "Clear all dues before deleting this flat.");
         return;
     }
+    if (hasActiveComplaint(&gComplaintHeap, block, flatNo)) {
+        sendJsonMessage(clientSocket, "409 Conflict", 0, "Resolve all active complaints before deleting this flat.");
+        return;
+    }
     if (!deleteFlat(block, flatNo)) {
         sendJsonMessage(clientSocket, "500 Internal Server Error", 0, "The flat could not be deleted.");
         return;
@@ -870,6 +958,102 @@ static void handleProcessPayment(SOCKET clientSocket, const char* body) {
     sendJsonMessage(clientSocket, "200 OK", 1, "Payment processed successfully.");
 }
 
+static void handleAddComplaint(SOCKET clientSocket, const char* body) {
+    char blockText[8];
+    char flatNo[32];
+    char type[64];
+    char description[192];
+    char priorityText[16];
+    char status[32];
+    char block;
+    int complaintId;
+    int priority;
+
+    if (!getParamValue(body, "block", blockText, sizeof(blockText)) ||
+        !getParamValue(body, "flatNo", flatNo, sizeof(flatNo)) ||
+        !getParamValue(body, "type", type, sizeof(type)) ||
+        !getParamValue(body, "description", description, sizeof(description)) ||
+        !getParamValue(body, "priority", priorityText, sizeof(priorityText)) ||
+        !getParamValue(body, "status", status, sizeof(status))) {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "All complaint details are required.");
+        return;
+    }
+
+    block = (char)toupper((unsigned char)blockText[0]);
+    trimSpaces(flatNo);
+    trimSpaces(type);
+    trimSpaces(description);
+    trimSpaces(status);
+    priority = atoi(priorityText);
+
+    if (searchResident(gResidentRoot, block, flatNo) == NULL) {
+        sendJsonMessage(clientSocket, "404 Not Found", 0, "Complaints can be logged only for occupied flats.");
+        return;
+    }
+    if (type[0] == '\0' || description[0] == '\0') {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Complaint type and description cannot be empty.");
+        return;
+    }
+    if (priority < 1 || priority > 3) {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Priority must be Low, Medium, or High.");
+        return;
+    }
+    if (!isValidComplaintStatus(status)) {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Status must be Pending, In Progress, or Resolved.");
+        return;
+    }
+
+    complaintId = addComplaint(&gComplaintHeap, block, flatNo, type, description, priority, status);
+    if (!complaintId) {
+        sendJsonMessage(clientSocket, "500 Internal Server Error", 0, "The complaint could not be saved.");
+        return;
+    }
+
+    saveComplaints(&gComplaintHeap);
+    sendJsonMessage(clientSocket, "200 OK", 1, "Complaint logged successfully.");
+}
+
+static void handleUpdateComplaintStatus(SOCKET clientSocket, const char* body) {
+    char idText[16];
+    char status[32];
+    int id;
+
+    if (!getParamValue(body, "id", idText, sizeof(idText)) ||
+        !getParamValue(body, "status", status, sizeof(status))) {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Complaint id and status are required.");
+        return;
+    }
+
+    trimSpaces(status);
+    id = atoi(idText);
+
+    if (id <= 0) {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Complaint id is invalid.");
+        return;
+    }
+    if (!isValidComplaintStatus(status)) {
+        sendJsonMessage(clientSocket, "400 Bad Request", 0, "Status must be Pending, In Progress, or Resolved.");
+        return;
+    }
+    if (strcmp(status, "Resolved") == 0) {
+        if (!removeComplaintById(&gComplaintHeap, id)) {
+            sendJsonMessage(clientSocket, "404 Not Found", 0, "Complaint not found.");
+            return;
+        }
+
+        saveComplaints(&gComplaintHeap);
+        sendJsonMessage(clientSocket, "200 OK", 1, "Complaint resolved and removed from the queue.");
+        return;
+    }
+    if (!updateComplaintStatus(&gComplaintHeap, id, status)) {
+        sendJsonMessage(clientSocket, "404 Not Found", 0, "Complaint not found.");
+        return;
+    }
+
+    saveComplaints(&gComplaintHeap);
+    sendJsonMessage(clientSocket, "200 OK", 1, "Complaint status updated successfully.");
+}
+
 static void handleApiRoute(SOCKET clientSocket, const char* method, const char* path, const char* body) {
     if (strcmp(method, "GET") == 0 && strcmp(path, "/api/state") == 0) {
         handleGetState(clientSocket);
@@ -911,6 +1095,16 @@ static void handleApiRoute(SOCKET clientSocket, const char* method, const char* 
         return;
     }
 
+    if (strcmp(method, "POST") == 0 && strcmp(path, "/api/complaints/add") == 0) {
+        handleAddComplaint(clientSocket, body);
+        return;
+    }
+
+    if (strcmp(method, "POST") == 0 && strcmp(path, "/api/complaints/update") == 0) {
+        handleUpdateComplaintStatus(clientSocket, body);
+        return;
+    }
+
     sendJsonMessage(clientSocket, "404 Not Found", 0, "API route not found.");
 }
 
@@ -946,9 +1140,11 @@ int main(void) {
     struct sockaddr_in serverAddress;
 
     setupBlocks();
+    initComplaintHeap(&gComplaintHeap);
     loadFlats();
     gResidentRoot = loadAllData();
     loadPayments(&gPaymentHead, &gPaymentTail);
+    loadComplaints(&gComplaintHeap);
     syncFlatOccupancy();
 
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {

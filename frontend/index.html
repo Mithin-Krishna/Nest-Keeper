@@ -17,14 +17,14 @@
     <main class="container-fluid px-3 px-lg-4 py-4">
         <section class="hero-shell">
             <div class="row g-4 align-items-stretch">
-                <div class="col-xl-8">
+                <div class="col-xl-7">
                     <div class="glass-card hero-copy h-100">
                         <p class="eyebrow">Community Dashboard</p>
                         <h1>Nest Keeper</h1>
                         <p class="hero-text">
-                            A responsive community management dashboard for flats, residents, and payment dues.
+                            A responsive community management dashboard for flats, residents, dues, and admin-logged complaints.
                         </p>
-                        <div class="map-card">
+                        <div class="map-card hero-map">
                             <iframe
                                 title="Community location"
                                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d11115.325934896882!2d80.17024179898718!3d12.919537350677729!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a525ebd8b1b7505%3A0xefbe82b8092822f!2sRuby%20Elite%2C%20Santhosapuram%2C%20Medavakkam%2C%20Chennai%2C%20Tamil%20Nadu%20600073!5e1!3m2!1sen!2sin!4v1778159793269!5m2!1sen!2sin"
@@ -34,19 +34,21 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-xl-4">
-                    <div class="glass-card status-stack h-100">
-                        <div class="status-tile">
-                            <p class="tile-label">Backend status</p>
-                            <strong id="server-status">Connecting...</strong>
-                        </div>
-                        <div class="status-tile">
-                            <p class="tile-label">Last refresh</p>
-                            <strong id="last-refresh">Waiting...</strong>
-                        </div>
-                        <div class="status-tile">
-                            <p class="tile-label">Rule note</p>
-                            <strong>Residents can be removed only after dues are cleared.</strong>
+                <div class="col-xl-5">
+                    <div class="glass-card hero-side h-100">
+                        <div class="status-stack">
+                            <div class="status-tile">
+                                <p class="tile-label">Backend status</p>
+                                <strong id="server-status">Connecting...</strong>
+                            </div>
+                            <div class="status-tile">
+                                <p class="tile-label">Last refresh</p>
+                                <strong id="last-refresh">Waiting...</strong>
+                            </div>
+                            <div class="status-tile">
+                                <p class="tile-label">Rule note</p>
+                                <strong>Residents can be removed only after dues are cleared.</strong>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -55,8 +57,15 @@
 
         <section class="stats-grid" id="stats-grid"></section>
 
-        <section class="row g-4 mb-4">
-            <div class="col-lg-4">
+        <section class="dashboard-section">
+            <div class="section-banner">
+                <div>
+                    <p class="eyebrow mb-2">Operations</p>
+                    <h2>Daily Actions</h2>
+                </div>
+            </div>
+
+            <div class="operations-grid">
                 <div class="glass-card h-100">
                     <div class="section-head">
                         <h2>Add Flat</h2>
@@ -90,9 +99,7 @@
                         </div>
                     </form>
                 </div>
-            </div>
 
-            <div class="col-lg-4">
                 <div class="glass-card h-100">
                     <div class="section-head">
                         <h2>Add Resident</h2>
@@ -126,9 +133,7 @@
                         </div>
                     </form>
                 </div>
-            </div>
 
-            <div class="col-lg-4">
                 <div class="glass-card h-100">
                     <div class="section-head">
                         <h2>Add Payment Due</h2>
@@ -158,90 +163,155 @@
                         </div>
                     </form>
                 </div>
-            </div>
-        </section>
 
-        <section class="row g-4 mb-4">
-            <div class="col-xl-7">
                 <div class="glass-card h-100">
-                    <div class="section-head section-head-row">
-                        <div>
-                            <h2>Flats</h2>
-                            <p>Inspect occupancy, filter the list, and delete removable flats.</p>
-                        </div>
-                        <div class="filters-wrap">
-                            <select id="flat-filter-block" class="form-select custom-input compact-filter">
-                                <option value="">All Blocks</option>
-                                <option value="A">Block A</option>
-                                <option value="B">Block B</option>
-                                <option value="C">Block C</option>
-                                <option value="D">Block D</option>
-                                <option value="E">Block E</option>
-                            </select>
-                            <select id="flat-filter-bhk" class="form-select custom-input compact-filter">
-                                <option value="">All BHK</option>
-                                <option value="1">1 BHK</option>
-                                <option value="2">2 BHK</option>
-                                <option value="3">3 BHK</option>
-                            </select>
-                            <select id="flat-filter-status" class="form-select custom-input compact-filter">
-                                <option value="">All Status</option>
-                                <option value="0">Available</option>
-                                <option value="1">Occupied</option>
+                    <div class="section-head">
+                        <h2>Add Complaint</h2>
+                        <p>Log resident complaints and prioritize urgent issues first.</p>
+                    </div>
+                    <form id="complaint-form" class="row g-3">
+                        <div class="col-md-6 col-xl-12">
+                            <label class="form-label">Block</label>
+                            <select class="form-select custom-input" name="block" required>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                                <option value="E">E</option>
                             </select>
                         </div>
-                    </div>
-                    <div class="table-shell">
-                        <table class="table align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Block</th>
-                                    <th>Flat</th>
-                                    <th>BHK</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="flats-body"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-5">
-                <div class="glass-card h-100">
-                    <div class="section-head section-head-row">
-                        <div>
-                            <h2>Residents</h2>
-                            <p>Removal is blocked while dues are pending.</p>
+                        <div class="col-md-6 col-xl-12">
+                            <label class="form-label">Flat Number</label>
+                            <input class="form-control custom-input" type="text" name="flatNo" placeholder="101" required>
                         </div>
-                        <input id="resident-search" class="form-control custom-input compact-search" type="search" placeholder="Search residents">
-                    </div>
-                    <div class="table-shell">
-                        <table class="table align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Block</th>
-                                    <th>Flat</th>
-                                    <th>Name</th>
-                                    <th>Phone</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="residents-body"></tbody>
-                        </table>
-                    </div>
+                        <div class="col-12">
+                            <label class="form-label">Complaint Type</label>
+                            <input class="form-control custom-input" type="text" name="type" placeholder="Water leakage" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control custom-input complaint-textarea" name="description" rows="3" placeholder="Describe the issue clearly" required></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Priority</label>
+                            <select class="form-select custom-input" name="priority" required>
+                                <option value="3">High</option>
+                                <option value="2">Medium</option>
+                                <option value="1">Low</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select class="form-select custom-input" name="status" required>
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Resolved">Resolved</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-brand w-100" type="submit">Log Complaint</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </section>
 
-        <section class="row g-4">
-            <div class="col-xl-8">
+        <section class="dashboard-section">
+            <div class="section-banner">
+                <div>
+                    <p class="eyebrow mb-2">Records</p>
+                    <h2>Live Property View</h2>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-xl-7">
+                    <div class="glass-card h-100">
+                        <div class="section-head section-head-row">
+                            <div>
+                                <h2>Flats</h2>
+                                <p>Inspect occupancy, filter the list, and delete removable flats.</p>
+                            </div>
+                            <div class="filters-wrap">
+                                <select id="flat-filter-block" class="form-select custom-input compact-filter">
+                                    <option value="">All Blocks</option>
+                                    <option value="A">Block A</option>
+                                    <option value="B">Block B</option>
+                                    <option value="C">Block C</option>
+                                    <option value="D">Block D</option>
+                                    <option value="E">Block E</option>
+                                </select>
+                                <select id="flat-filter-bhk" class="form-select custom-input compact-filter">
+                                    <option value="">All BHK</option>
+                                    <option value="1">1 BHK</option>
+                                    <option value="2">2 BHK</option>
+                                    <option value="3">3 BHK</option>
+                                </select>
+                                <select id="flat-filter-status" class="form-select custom-input compact-filter">
+                                    <option value="">All Status</option>
+                                    <option value="0">Available</option>
+                                    <option value="1">Occupied</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-shell">
+                            <table class="table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Block</th>
+                                        <th>Flat</th>
+                                        <th>BHK</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="flats-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-5">
+                    <div class="glass-card h-100">
+                        <div class="section-head section-head-row">
+                            <div>
+                                <h2>Residents</h2>
+                                <p>Removal is blocked while dues are pending.</p>
+                            </div>
+                            <input id="resident-search" class="form-control custom-input compact-search" type="search" placeholder="Search residents">
+                        </div>
+                        <div class="table-shell">
+                            <table class="table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Block</th>
+                                        <th>Flat</th>
+                                        <th>Name</th>
+                                        <th>Phone</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="residents-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="dashboard-section">
+            <div class="section-banner">
+                <div>
+                    <p class="eyebrow mb-2">Monitoring</p>
+                    <h2>Queues and Follow-up</h2>
+                </div>
+            </div>
+
+            <div class="monitoring-grid">
                 <div class="glass-card h-100">
                     <div class="section-head section-head-row">
                         <div>
                             <h2>Pending Payments Queue</h2>
-                            <p>The table keeps backend queue order. Processing removes the exact queue entry you click.</p>
                         </div>
                     </div>
                     <div class="table-shell">
@@ -259,15 +329,38 @@
                         </table>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-xl-4">
                 <div class="glass-card h-100">
                     <div class="section-head">
                         <h2>Activity Feed</h2>
-                        <p>Frontend actions and backend responses appear here.</p>
                     </div>
                     <ul id="activity-feed" class="activity-feed"></ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="dashboard-section dashboard-section-tight">
+            <div class="glass-card h-100">
+                <div class="section-head section-head-row">
+                    <div>
+                        <h2>Complaint Queue</h2>
+                    </div>
+                </div>
+                <div class="table-shell">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Flat</th>
+                                <th>Type</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Description</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="complaints-body"></tbody>
+                    </table>
                 </div>
             </div>
         </section>
@@ -312,7 +405,7 @@
 
     <div id="toast" class="toast-shell" aria-live="polite"></div>
 
-    <script src="bootstrap.bundle.min.js"></script>
+    <script src="/bootstrap.bundle.min.js"></script>
     <script src="/app.js"></script>
 </body>
 </html>

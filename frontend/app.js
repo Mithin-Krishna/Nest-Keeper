@@ -4,6 +4,7 @@ const state = {
         flats: [],
         residents: [],
         payments: [],
+        complaints: [],
     },
 };
 
@@ -11,6 +12,7 @@ const statsGrid = document.getElementById("stats-grid");
 const flatsBody = document.getElementById("flats-body");
 const residentsBody = document.getElementById("residents-body");
 const paymentsBody = document.getElementById("payments-body");
+const complaintsBody = document.getElementById("complaints-body");
 const activityFeed = document.getElementById("activity-feed");
 const toast = document.getElementById("toast");
 const serverStatus = document.getElementById("server-status");
@@ -20,6 +22,45 @@ const editResidentModalElement = document.getElementById("editResidentModal");
 const editResidentModal = window.bootstrap ? new bootstrap.Modal(editResidentModalElement) : null;
 
 const activityEntries = [];
+
+function showResidentModal() {
+    if (editResidentModal) {
+        editResidentModal.show();
+        return;
+    }
+
+    editResidentModalElement.classList.add("show", "manual-modal");
+    editResidentModalElement.style.display = "block";
+    editResidentModalElement.removeAttribute("aria-hidden");
+    editResidentModalElement.setAttribute("aria-modal", "true");
+    document.body.classList.add("modal-open");
+
+    if (!document.querySelector('[data-manual-backdrop="resident"]')) {
+        const backdrop = document.createElement("div");
+        backdrop.className = "modal-backdrop fade show";
+        backdrop.dataset.manualBackdrop = "resident";
+        backdrop.addEventListener("click", hideResidentModal);
+        document.body.appendChild(backdrop);
+    }
+}
+
+function hideResidentModal() {
+    if (editResidentModal) {
+        editResidentModal.hide();
+        return;
+    }
+
+    editResidentModalElement.classList.remove("show", "manual-modal");
+    editResidentModalElement.style.display = "none";
+    editResidentModalElement.setAttribute("aria-hidden", "true");
+    editResidentModalElement.removeAttribute("aria-modal");
+    document.body.classList.remove("modal-open");
+
+    const backdrop = document.querySelector('[data-manual-backdrop="resident"]');
+    if (backdrop) {
+        backdrop.remove();
+    }
+}
 
 function addActivity(title, detail) {
     activityEntries.unshift({
@@ -74,11 +115,16 @@ function renderStats() {
         createStatCard("Available Flats", summary.available ?? 0),
         createStatCard("Residents", summary.residents ?? 0),
         createStatCard("Pending Queue", summary.pendingPayments ?? 0),
+        createStatCard("Complaints", summary.complaints ?? 0),
     ].join("");
 }
 
 function hasPendingDues(block, flatNo) {
     return state.data.payments.some((payment) => payment.block === block && payment.flatNo === flatNo);
+}
+
+function hasActiveComplaint(block, flatNo) {
+    return state.data.complaints.some((complaint) => complaint.block === block && complaint.flatNo === flatNo);
 }
 
 function isOccupied(block, flatNo) {
@@ -122,12 +168,12 @@ function renderFlats() {
             <td>
                 <div class="d-flex gap-2 flex-wrap">
                 <button
-                    class="btn btn-sm ${isOccupied(flat.block, flat.flatNo) || hasPendingDues(flat.block, flat.flatNo) ? "btn-danger-soft" : "btn-soft-secondary"}"
+                    class="btn btn-sm ${isOccupied(flat.block, flat.flatNo) || hasPendingDues(flat.block, flat.flatNo) || hasActiveComplaint(flat.block, flat.flatNo) ? "btn-danger-soft" : "btn-soft-secondary"}"
                     data-action="delete-flat"
                     data-block="${flat.block}"
                     data-flat="${flat.flatNo}"
-                    ${(isOccupied(flat.block, flat.flatNo) || hasPendingDues(flat.block, flat.flatNo)) ? "disabled" : ""}
-                    title="${isOccupied(flat.block, flat.flatNo) ? "Remove the occupant before deleting the flat." : hasPendingDues(flat.block, flat.flatNo) ? "Clear dues before deleting the flat." : "Delete flat"}">
+                    ${(isOccupied(flat.block, flat.flatNo) || hasPendingDues(flat.block, flat.flatNo) || hasActiveComplaint(flat.block, flat.flatNo)) ? "disabled" : ""}
+                    title="${isOccupied(flat.block, flat.flatNo) ? "Remove the occupant before deleting the flat." : hasPendingDues(flat.block, flat.flatNo) ? "Clear dues before deleting the flat." : hasActiveComplaint(flat.block, flat.flatNo) ? "Resolve all active complaints before deleting the flat." : "Delete flat"}">
                     Delete
                 </button>
                 </div>
@@ -216,11 +262,60 @@ function renderPayments() {
     `).join("");
 }
 
+function complaintStatusOptions(currentStatus) {
+    return ["Pending", "In Progress", "Resolved"].map((status) => `
+        <option value="${status}" ${status === currentStatus ? "selected" : ""}>${status}</option>
+    `).join("");
+}
+
+function complaintPriorityBadge(priorityLabel) {
+    const badgeClass = priorityLabel === "High"
+        ? "badge-danger"
+        : priorityLabel === "Medium"
+            ? "badge-warning"
+            : "badge-info";
+
+    return `<span class="badge-soft ${badgeClass}">${priorityLabel}</span>`;
+}
+
+function renderComplaints() {
+    const complaints = state.data.complaints;
+
+    if (!complaints.length) {
+        complaintsBody.innerHTML = '<tr><td colspan="7" class="empty-state">No complaints have been logged yet.</td></tr>';
+        return;
+    }
+
+    complaintsBody.innerHTML = complaints.map((complaint) => `
+        <tr>
+            <td>#${complaint.id}</td>
+            <td>${complaint.block}-${complaint.flatNo}</td>
+            <td>${complaint.type}</td>
+            <td>${complaintPriorityBadge(complaint.priorityLabel)}</td>
+            <td>
+                <select class="form-select custom-input custom-input-sm complaint-status-select" data-complaint-id="${complaint.id}">
+                    ${complaintStatusOptions(complaint.status)}
+                </select>
+            </td>
+            <td class="complaint-description-cell">${complaint.description}</td>
+            <td>
+                <button
+                    class="btn btn-sm btn-soft"
+                    data-action="update-complaint-status"
+                    data-complaint-id="${complaint.id}">
+                    Save
+                </button>
+            </td>
+        </tr>
+    `).join("");
+}
+
 function renderAll() {
     renderStats();
     renderFlats();
     renderResidents();
     renderPayments();
+    renderComplaints();
 }
 
 async function fetchState() {
@@ -304,18 +399,28 @@ function wireForms() {
         }
     });
 
+    document.getElementById("complaint-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+            await submitForm("/api/complaints/add", event.currentTarget, "Complaint logged");
+        } catch (error) {
+            addActivity("Complaint logging failed", error.message);
+            showToast(error.message, true);
+        }
+    });
+
     editResidentForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         try {
             await submitForm("/api/residents/update", event.currentTarget, "Occupant updated", false);
-            if (editResidentModal) {
-                editResidentModal.hide();
-            }
+            hideResidentModal();
         } catch (error) {
             addActivity("Occupant update failed", error.message);
             showToast(error.message, true);
         }
     });
+
+    editResidentModalElement.querySelector(".btn-close").addEventListener("click", hideResidentModal);
 }
 
 function wireFilters() {
@@ -349,9 +454,7 @@ function wireTableActions() {
                 resident.name,
                 resident.phone
             );
-            if (editResidentModal) {
-                editResidentModal.show();
-            }
+            showResidentModal();
             return;
         }
 
@@ -380,6 +483,15 @@ function wireTableActions() {
                     queueIndex: button.dataset.queueIndex,
                 });
                 label = "Payment processed";
+            } else if (action === "update-complaint-status") {
+                const statusSelect = document.querySelector(`select[data-complaint-id="${button.dataset.complaintId}"]`);
+                const nextStatus = statusSelect ? statusSelect.value : "Pending";
+                endpoint = "/api/complaints/update";
+                formData = new URLSearchParams({
+                    id: button.dataset.complaintId,
+                    status: nextStatus,
+                });
+                label = nextStatus === "Resolved" ? "Complaint closed" : "Complaint updated";
             } else {
                 return;
             }
