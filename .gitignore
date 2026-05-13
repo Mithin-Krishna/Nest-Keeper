@@ -36,6 +36,12 @@
 *.x86_64
 *.hex
 
+# Runtime app data
+*.dat
+
+# Temporary local verification builds
+community_web_verify.exe
+
 # Debug files
 *.dSYM/
 *.su
