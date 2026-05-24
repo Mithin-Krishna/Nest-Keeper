@@ -14,6 +14,11 @@
     --shadow: 0 22px 60px rgba(83, 56, 35, 0.12);
 }
 
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 88px;
+}
+
 * {
     box-sizing: border-box;
 }
@@ -28,6 +33,14 @@ body {
         radial-gradient(circle at top right, rgba(29, 112, 118, 0.15), transparent 22%),
         linear-gradient(180deg, #f8f3ec 0%, #f4ede4 45%, #eee3d2 100%);
     overflow-x: hidden;
+}
+
+#overview,
+#actions,
+#records,
+#monitoring,
+#complaints {
+    scroll-margin-top: 96px;
 }
 
 .bg-orb {
@@ -56,6 +69,70 @@ body {
 main {
     position: relative;
     z-index: 1;
+}
+
+.top-nav {
+    z-index: 1040;
+    padding: 0;
+    background: rgba(248, 243, 236, 0.92);
+    border-bottom: 1px solid rgba(34, 41, 47, 0.08);
+    box-shadow: 0 10px 30px rgba(83, 56, 35, 0.08);
+    backdrop-filter: blur(14px);
+}
+
+.nav-shell {
+    margin: 0;
+    min-height: 66px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+.nav-brand {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #2158b6;
+}
+
+.nav-brand:hover,
+.nav-brand:focus {
+    color: #174696;
+}
+
+.nav-links {
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.top-nav-link {
+    padding: 0.6rem 0.95rem;
+    border-radius: 999px;
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.top-nav-link:hover,
+.top-nav-link:focus {
+    color: var(--brand-deep);
+    background: rgba(216, 109, 51, 0.12);
+}
+
+.nav-toggle {
+    border: 1px solid rgba(34, 41, 47, 0.1);
+    border-radius: 14px;
+    padding: 0.45rem 0.65rem;
+}
+
+.nav-toggle:focus {
+    box-shadow: 0 0 0 0.2rem rgba(29, 112, 118, 0.12);
+}
+
+#dashboardNav {
+    padding-bottom: 0.15rem;
 }
 
 .glass-card,
@@ -494,6 +571,10 @@ h1 {
         border-radius: 22px;
     }
 
+    .top-nav {
+        padding-top: 0;
+    }
+
     .stats-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -519,6 +600,21 @@ h1 {
 
     .custom-input-sm {
         min-width: 100%;
+    }
+
+    .nav-links {
+        align-items: stretch;
+        gap: 0.25rem;
+        padding: 0.75rem 0 0.35rem;
+    }
+
+    .top-nav-link {
+        text-align: center;
+        border-radius: 14px;
+    }
+
+    #dashboardNav {
+        padding-bottom: 0.45rem;
     }
 }
 

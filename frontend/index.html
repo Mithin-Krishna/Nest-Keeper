@@ -14,8 +14,33 @@
     <div class="bg-orb bg-orb-one"></div>
     <div class="bg-orb bg-orb-two"></div>
 
+    <header class="top-nav sticky-top">
+        <nav class="navbar navbar-expand-lg nav-shell px-3 px-lg-4">
+            <a class="navbar-brand nav-brand" href="#overview">Nest Keeper</a>
+            <button
+                class="navbar-toggler nav-toggle"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#dashboardNav"
+                aria-controls="dashboardNav"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="dashboardNav">
+                <div class="navbar-nav ms-auto nav-links">
+                    <a class="nav-link top-nav-link" href="#overview">Overview</a>
+                    <a class="nav-link top-nav-link" href="#actions">Actions</a>
+                    <a class="nav-link top-nav-link" href="#records">Records</a>
+                    <a class="nav-link top-nav-link" href="#monitoring">Monitoring</a>
+                    <a class="nav-link top-nav-link" href="#complaints">Complaints</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
     <main class="container-fluid px-3 px-lg-4 py-4">
-        <section class="hero-shell">
+        <section class="hero-shell" id="overview">
             <div class="row g-4 align-items-stretch">
                 <div class="col-xl-7">
                     <div class="glass-card hero-copy h-100">
@@ -57,7 +82,7 @@
 
         <section class="stats-grid" id="stats-grid"></section>
 
-        <section class="dashboard-section">
+        <section class="dashboard-section" id="actions">
             <div class="section-banner">
                 <div>
                     <p class="eyebrow mb-2">Operations</p>
@@ -216,7 +241,7 @@
             </div>
         </section>
 
-        <section class="dashboard-section">
+        <section class="dashboard-section" id="records">
             <div class="section-banner">
                 <div>
                     <p class="eyebrow mb-2">Records</p>
@@ -299,7 +324,7 @@
             </div>
         </section>
 
-        <section class="dashboard-section">
+        <section class="dashboard-section" id="monitoring">
             <div class="section-banner">
                 <div>
                     <p class="eyebrow mb-2">Monitoring</p>
@@ -339,7 +364,7 @@
             </div>
         </section>
 
-        <section class="dashboard-section dashboard-section-tight">
+        <section class="dashboard-section dashboard-section-tight" id="complaints">
             <div class="glass-card h-100">
                 <div class="section-head section-head-row">
                     <div>
